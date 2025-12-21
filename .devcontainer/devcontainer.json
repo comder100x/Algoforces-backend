@@ -1,0 +1,35 @@
+{
+	"name": "Algoforces Services",
+	"image": "golang:1.23-bookworm",
+	"forwardPorts": [8080],
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.Go",
+				"eamodio.gitlens",
+				"streetsidesoftware.code-spell-checker"
+			],
+			"settings": {
+				"go.useLanguageServer": true,
+				"go.lintTool": "golangci-lint",
+				"go.lintOnSave": "workspace",
+				"editor.formatOnSave": true,
+				"[go]": {
+					"editor.defaultFormatter": "golang.Go",
+					"editor.codeActionsOnSave": {
+						"source.organizeImports": "explicit"
+					}
+				}
+			}
+		}
+	},
+	"postCreateCommand": "go mod download && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
+	"remoteUser": "root"
+}
+
+
+
