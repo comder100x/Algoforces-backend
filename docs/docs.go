@@ -294,6 +294,9 @@ const docTemplate = `{
                 "role": {
                     "type": "string"
                 },
+                "updated_at": {
+                    "type": "string"
+                },
                 "username": {
                     "type": "string"
                 }
@@ -309,6 +312,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "role": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 },
                 "username": {

@@ -13,6 +13,7 @@ type User struct {
 	Role      string    `json:"role" gorm:"default:user"`
 	Username  string    `json:"username" gorm:""`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 // SignupRequest is what the frontend sends to register.
@@ -39,6 +40,7 @@ type UserProfileResponse struct {
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type UpdateUserProfileRequest struct {

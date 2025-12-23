@@ -98,6 +98,7 @@ func (s *authService) GetUserProfile(ctx context.Context, userID string) (*domai
 		Email:     user.Email,
 		Role:      user.Role,
 		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}, nil
 }
 
@@ -124,5 +125,6 @@ func (s *authService) UpdateUserProfile(ctx context.Context, userID string, req 
 		Email:     user.Email,
 		Role:      user.Role,
 		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}, nil
 }
