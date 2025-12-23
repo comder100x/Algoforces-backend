@@ -32,6 +32,51 @@ definitions:
         - $ref: '#/definitions/domain.User'
         description: Returns user info (without password)
     type: object
+  domain.CreateContestRequest:
+    properties:
+      description:
+        type: string
+      duration:
+        description: in minutes
+        type: integer
+      end_time:
+        type: string
+      name:
+        type: string
+      start_time:
+        type: string
+      visible:
+        type: boolean
+    required:
+    - duration
+    - end_time
+    - name
+    - start_time
+    type: object
+  domain.CreateContestResponse:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      duration:
+        description: in minutes
+        type: integer
+      end_time:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      start_time:
+        type: string
+      updated_at:
+        type: string
+      visible:
+        type: boolean
+    type: object
   domain.LoginRequest:
     properties:
       email:
@@ -79,6 +124,54 @@ definitions:
     - email
     - password
     - username
+    type: object
+  domain.UpdateContestRequest:
+    properties:
+      description:
+        type: string
+      duration:
+        description: in minutes
+        type: integer
+      end_time:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      start_time:
+        type: string
+      visible:
+        type: boolean
+    required:
+    - duration
+    - end_time
+    - id
+    - name
+    - start_time
+    type: object
+  domain.UpdateContestResponse:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      duration:
+        description: in minutes
+        type: integer
+      end_time:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      start_time:
+        type: string
+      updated_at:
+        type: string
+      visible:
+        type: boolean
     type: object
   domain.UpdateUserProfileRequest:
     properties:
@@ -146,6 +239,14 @@ definitions:
     properties:
       error:
         type: string
+      message:
+        type: string
+      status_code:
+        type: integer
+    type: object
+  utils.SuccessResponse:
+    properties:
+      data: {}
       message:
         type: string
       status_code:
@@ -339,6 +440,127 @@ paths:
       summary: User Signup
       tags:
       - Auth
+  /api/contest/{id}:
+    delete:
+      description: Delete a contest by ID (admin only)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a Contest
+      tags:
+      - Contest
+    get:
+      description: Get details of a specific contest by ID
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.CreateContestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Contest Details
+      tags:
+      - Contest
+  /api/contest/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new contest (admin or problem-setter only)
+      parameters:
+      - description: Create Contest Request
+        in: body
+        name: createContestRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateContestRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.CreateContestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new Contest
+      tags:
+      - Contest
+  /api/contest/update:
+    put:
+      consumes:
+      - application/json
+      description: Update an existing contest (admin or problem-setter only)
+      parameters:
+      - description: Update Contest Request
+        in: body
+        name: updateContestRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateContestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UpdateContestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a Contest
+      tags:
+      - Contest
   /api/health:
     get:
       description: Get the health status of the API

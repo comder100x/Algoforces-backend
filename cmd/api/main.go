@@ -38,7 +38,7 @@ func main() {
 	defer db.Close()
 
 	// Run migrations
-	err = db.AutoMigrate(&domain.User{})
+	err = db.AutoMigrate(&domain.User{}, &domain.Contest{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
@@ -46,11 +46,14 @@ func main() {
 	// 2. Initialize dependencies
 	userRepo := postgres.NewUserRepository(db.DB)
 	adminRepo := postgres.NewAdminRepository(db.DB)
+	contestRepo := postgres.NewContestRepository(db.DB)
 	authService := services.NewAuthService(userRepo)
 	adminService := services.NewAdminService(adminRepo)
+	contestService := services.NewContestService(contestRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService)
 	adminHandler := handlers.NewAdminHandler(adminService)
+	contestHandler := handlers.NewContestHandler(contestService)
 	// 3. Setup router
 	r := gin.Default()
 
@@ -85,6 +88,16 @@ func main() {
 		admin.GET("/users", adminHandler.GetAllUsers)
 		admin.GET("/admins", adminHandler.GetAdmins)
 		admin.GET("/problem-setters", adminHandler.GetProblemSetters)
+	}
+
+	// Contest routes (protected + admin/problem-setter role required)
+	contest := r.Group("/api/contest")
+	contest.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
+	{
+		contest.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), contestHandler.CreateContest)
+		contest.GET("/:id", contestHandler.GetContestDetails)
+		contest.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), contestHandler.UpdateContest)
+		contest.DELETE("/:id", middleware.RoleMiddleware("admin"), contestHandler.DeleteContest)
 	}
 
 	// 5. Start the Server

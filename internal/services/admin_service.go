@@ -49,7 +49,11 @@ func (s *adminService) RemoveRole(ctx context.Context, req *domain.RemoveRoleReq
 		return nil, errors.New("User not found")
 	}
 
-	user.Role = "user" // Default role after removal
+	if req.Role == "" {
+		user.Role = "user"
+	} else {
+		user.Role = req.Role
+	}
 
 	err = s.adminRepo.UpdateByEmail(ctx, req.Email, user)
 	if err != nil {
