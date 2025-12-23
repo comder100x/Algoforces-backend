@@ -1,5 +1,28 @@
 basePath: /
 definitions:
+  domain.AddRoleRequest:
+    properties:
+      email:
+        type: string
+      role:
+        enum:
+        - admin
+        - user
+        - problem_setter
+        type: string
+    required:
+    - email
+    - role
+    type: object
+  domain.AddRoleResponse:
+    properties:
+      current_role:
+        type: string
+      email:
+        type: string
+      role:
+        type: string
+    type: object
   domain.AuthResponse:
     properties:
       access_token:
@@ -18,6 +41,29 @@ definitions:
     required:
     - email
     - password
+    type: object
+  domain.RemoveRoleRequest:
+    properties:
+      email:
+        type: string
+      role:
+        enum:
+        - admin
+        - user
+        - problem_setter
+        type: string
+    required:
+    - email
+    - role
+    type: object
+  domain.RemoveRoleResponse:
+    properties:
+      current_role:
+        type: string
+      email:
+        type: string
+      role:
+        type: string
     type: object
   domain.SignupRequest:
     properties:
@@ -61,6 +107,28 @@ definitions:
       username:
         type: string
     type: object
+  domain.UserListItem:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  domain.UserListResponse:
+    properties:
+      total:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/domain.UserListItem'
+        type: array
+    type: object
   domain.UserProfileResponse:
     properties:
       created_at:
@@ -90,6 +158,127 @@ info:
   title: Algoforces API
   version: "1.0"
 paths:
+  /api/admin/addrole:
+    put:
+      consumes:
+      - application/json
+      description: Assign a new role to a user
+      parameters:
+      - description: Add Role Request
+        in: body
+        name: addRoleRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.AddRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.AddRoleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add Role to User
+      tags:
+      - Admin
+  /api/admin/admins:
+    get:
+      description: Get list of all admin users (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UserListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Admins
+      tags:
+      - Admin
+  /api/admin/problem-setters:
+    get:
+      description: Get list of all problem setter users (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UserListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Problem Setters
+      tags:
+      - Admin
+  /api/admin/removerole:
+    put:
+      consumes:
+      - application/json
+      description: Remove a role from a user
+      parameters:
+      - description: Remove Role Request
+        in: body
+        name: removeRoleRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RemoveRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.RemoveRoleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove Role from User
+      tags:
+      - Admin
+  /api/admin/users:
+    get:
+      description: Get list of all users (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UserListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Users
+      tags:
+      - Admin
   /api/auth/login:
     post:
       consumes:
@@ -216,7 +405,7 @@ paths:
       - User
 securityDefinitions:
   BearerAuth:
-    description: 'Enter your bearer token in the format: Bearer {token}'
+    description: Enter your token only (without Bearer prefix)
     in: header
     name: Authorization
     type: apiKey

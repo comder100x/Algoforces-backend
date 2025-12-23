@@ -27,7 +27,7 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Enter your bearer token in the format: Bearer {token}
+// @description Enter your token only (without Bearer prefix)
 
 func main() {
 	// 1. Initialize database connection
@@ -45,9 +45,12 @@ func main() {
 
 	// 2. Initialize dependencies
 	userRepo := postgres.NewUserRepository(db.DB)
+	adminRepo := postgres.NewAdminRepository(db.DB)
 	authService := services.NewAuthService(userRepo)
+	adminService := services.NewAdminService(adminRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService)
+	adminHandler := handlers.NewAdminHandler(adminService)
 	// 3. Setup router
 	r := gin.Default()
 
@@ -57,12 +60,33 @@ func main() {
 
 	// Public routes
 	r.GET("/api/health", handlers.GetHealth)
-	r.POST("/api/auth/signup", authHandler.Signup)
-	r.POST("/api/auth/login", authHandler.Login)
 
-	// Protected routes
-	r.GET("/api/user/profile", middleware.AuthMiddleware(), userHandler.GetUserProfile)
-	r.PUT("/api/user/profile", middleware.AuthMiddleware(), userHandler.UpdateUserProfile)
+	// Auth routes
+	auth := r.Group("/api/auth")
+	{
+		auth.POST("/signup", authHandler.Signup)
+		auth.POST("/login", authHandler.Login)
+	}
+
+	// User routes (protected)
+	user := r.Group("/api/user")
+	user.Use(middleware.AuthMiddleware())
+	{
+		user.GET("/profile", userHandler.GetUserProfile)
+		user.PUT("/profile", userHandler.UpdateUserProfile)
+	}
+
+	// Admin routes (protected + admin role required)
+	admin := r.Group("/api/admin")
+	admin.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
+	{
+		admin.PUT("/addrole", adminHandler.AddRole)
+		admin.PUT("/removerole", adminHandler.RemoveRole)
+		admin.GET("/users", adminHandler.GetAllUsers)
+		admin.GET("/admins", adminHandler.GetAdmins)
+		admin.GET("/problem-setters", adminHandler.GetProblemSetters)
+	}
+
 	// 5. Start the Server
 	fmt.Println("Starting Algoforces API on :8080...")
 	err = r.Run(":8080")
