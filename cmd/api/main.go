@@ -10,8 +10,24 @@ import (
 	"fmt"
 	"log"
 
+	_ "algoforces/docs" // Import generated docs for Swagger
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title           Algoforces API
+// @version         1.0
+// @description     API for Algoforces application
+
+// @host            localhost:8080
+// @BasePath        /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Enter your bearer token in the format: Bearer {token}
 
 func main() {
 	// 1. Initialize database connection
@@ -35,8 +51,12 @@ func main() {
 	// 3. Setup router
 	r := gin.Default()
 
+	//swagger Registration
+	// Swagger route
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Public routes
-	r.GET("/health", handlers.GetHealth)
+	r.GET("/api/health", handlers.GetHealth)
 	r.POST("/api/auth/signup", authHandler.Signup)
 	r.POST("/api/auth/login", authHandler.Login)
 

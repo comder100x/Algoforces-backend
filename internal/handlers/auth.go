@@ -18,6 +18,17 @@ func NewAuthHandler(authUseCase domain.UserUseCase) *AuthHandler {
 	}
 }
 
+// Signup godoc
+// @Summary      User Signup
+// @Description  Register a new user
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        signupRequest  body      domain.SignupRequest  true  "Signup Request"
+// @Success      201  {object}  domain.AuthResponse
+// @Failure      400  {object}  utils.ErrorResponse
+// @Failure      500  {object}  utils.ErrorResponse
+// @Router       /api/auth/signup [post]
 func (h *AuthHandler) Signup(c *gin.Context) {
 	var signupRequest domain.SignupRequest
 	if err := c.ShouldBindJSON(&signupRequest); err != nil {
@@ -34,6 +45,17 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	utils.SendSuccess(c, http.StatusCreated, authResponse, "User signed up successfully")
 }
 
+// Login godoc
+// @Summary      User Login
+// @Description  Authenticate a user and return a token
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        loginRequest  body      domain.LoginRequest  true  "Login Request"
+// @Success      200  {object}  domain.AuthResponse
+// @Failure      400  {object}  utils.ErrorResponse
+// @Failure      500  {object}  utils.ErrorResponse
+// @Router       /api/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var loginRequest domain.LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {

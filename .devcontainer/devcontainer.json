@@ -1,7 +1,9 @@
 {
 	"name": "Algoforces Services",
-	"image": "golang:1.23-bookworm",
-	"forwardPorts": [8080],
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspace",
+	"forwardPorts": [8080, 5432],
 	"features": {
 		"ghcr.io/devcontainers/features/git:1": {},
 		"ghcr.io/devcontainers/features/github-cli:1": {}
@@ -11,7 +13,8 @@
 			"extensions": [
 				"golang.Go",
 				"eamodio.gitlens",
-				"streetsidesoftware.code-spell-checker"
+				"streetsidesoftware.code-spell-checker",
+				"cweijan.vscode-database-client2"
 			],
 			"settings": {
 				"go.useLanguageServer": true,
