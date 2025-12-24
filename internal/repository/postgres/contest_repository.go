@@ -50,6 +50,3 @@ func (r *contestRepository) CheckContestInTimeWindow(ctx context.Context, startT
 	}
 	return contests, nil
 }
-
-// Ensure contestRepository implements domain.ContestRepository
-var _ domain.ContestRepository = (*contestRepository)(nil)
