@@ -17,17 +17,17 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// @title           Algoforces API
-// @version         1.0
-// @description     API for Algoforces application
+//	@title			Algoforces API
+//	@version		1.0
+//	@description	API for Algoforces application
 
-// @host            localhost:8080
-// @BasePath        /
+//	@host		localhost:8080
+//	@BasePath	/
 
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description Enter your token only (without Bearer prefix)
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+//	@description				Enter your token only (without Bearer prefix)
 
 func main() {
 	// 1. Initialize database connection
@@ -38,7 +38,7 @@ func main() {
 	defer db.Close()
 
 	// Run migrations
-	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{})
+	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.Problem{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
@@ -48,15 +48,18 @@ func main() {
 	adminRepo := postgres.NewAdminRepository(db.DB)
 	contestRepo := postgres.NewContestRepository(db.DB)
 	contestRegisterRepo := postgres.NewContestRegisterRepository(db.DB)
+	problemRepo := postgres.NewProblemRepository(db.DB)
 	authService := services.NewAuthService(userRepo)
 	adminService := services.NewAdminService(adminRepo)
 	contestService := services.NewContestService(contestRepo, userRepo)
 	contestRegisterService := services.NewContestRegisterService(contestRegisterRepo, contestRepo, userRepo)
+	problemService := services.NewProblemService(problemRepo, userRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService)
 	adminHandler := handlers.NewAdminHandler(adminService)
 	contestHandler := handlers.NewContestHandler(contestService)
 	contestRegisterHandler := handlers.NewContestRegisterHandler(contestRegisterService)
+	problemHandler := handlers.NewProblemHandler(problemService)
 	// 3. Setup router
 	r := gin.Default()
 
@@ -107,11 +110,23 @@ func main() {
 
 	// Contest registration routes (protected)
 	contestRegistration := r.Group("/api/contest")
-	contestRegistration.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user","admin"))
+	contestRegistration.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user", "admin"))
 	{
 		contestRegistration.POST("/register", contestRegisterHandler.RegisterContest)
 		contestRegistration.POST("/unregister", contestRegisterHandler.UnregisterContest)
 		contestRegistration.GET("/registrations", contestRegisterHandler.GetAllRegistrations)
+	}
+
+	// Problem routes (protected)
+	problem := r.Group("/api/problem")
+	problem.Use(middleware.AuthMiddleware())
+	{
+		problem.POST("/create", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.CreateProblem)
+		problem.POST("/bulk", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.CreateProblemsInBulk)
+		problem.GET("/all", problemHandler.GetAllProblems)
+		problem.GET("/:id", problemHandler.GetProblemByID)
+		problem.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.UpdateProblem)
+		problem.DELETE("/:id", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.DeleteProblem)
 	}
 
 	// 5. Start the Server

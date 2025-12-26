@@ -20,14 +20,15 @@ func NewUserHandler(userUseCase domain.UserUseCase) *UserHandler {
 }
 
 // GetUserProfile godoc
-// @Summary      Get User Profile
-// @Description  Get the profile of the authenticated user
-// @Tags         User
-// @Security     BearerAuth
-// @Produce      json
-// @Success      200  {object}  domain.UserProfileResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/user/profile [get]
+//
+//	@Summary		Get User Profile
+//	@Description	Get the profile of the authenticated user
+//	@Tags			User
+//	@Security		BearerAuth
+//	@Produce		json
+//	@Success		200	{object}	domain.UserProfileResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/user/profile [get]
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	// Extract user ID from middleware context
 	userID, err := middleware.GetUserID(c)
@@ -46,17 +47,18 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 }
 
 // UpdateUserProfile godoc
-// @Summary      Update User Profile
-// @Description  Update the profile of the authenticated user
-// @Tags         User
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Param        updateUserProfileRequest  body      domain.UpdateUserProfileRequest  true  "Update User Profile Request"
-// @Success      200  {object}  domain.UserProfileResponse
-// @Failure      400  {object}  utils.ErrorResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/user/profile [put]
+//
+//	@Summary		Update User Profile
+//	@Description	Update the profile of the authenticated user
+//	@Tags			User
+//	@Security		BearerAuth
+//	@Accept			json
+//	@Produce		json
+//	@Param			updateUserProfileRequest	body		domain.UpdateUserProfileRequest	true	"Update User Profile Request"
+//	@Success		200							{object}	domain.UserProfileResponse
+//	@Failure		400							{object}	utils.ErrorResponse
+//	@Failure		500							{object}	utils.ErrorResponse
+//	@Router			/api/user/profile [put]
 func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 
 	userID, err := middleware.GetUserID(c)

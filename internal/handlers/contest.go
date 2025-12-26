@@ -20,17 +20,18 @@ func NewContestHandler(contestUseCase domain.ContestUseCase) *ContestHandler {
 }
 
 // CreateContest godoc
-// @Summary      Create a new Contest
-// @Description  Create a new contest (admin or problem-setter only)
-// @Tags         Contest
-// @Accept       json
-// @Produce      json
-// @Param        createContestRequest  body      domain.CreateContestRequest  true  "Create Contest Request"
-// @Security     BearerAuth
-// @Success      201  {object}  domain.CreateContestResponse
-// @Failure      400  {object}  utils.ErrorResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/contest/create [post]
+//
+//	@Summary		Create a new Contest
+//	@Description	Create a new contest (admin or problem-setter only)
+//	@Tags			Contest
+//	@Accept			json
+//	@Produce		json
+//	@Param			createContestRequest	body	domain.CreateContestRequest	true	"Create Contest Request"
+//	@Security		BearerAuth
+//	@Success		201	{object}	domain.CreateContestResponse
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/contest/create [post]
 func (h *ContestHandler) CreateContest(c *gin.Context) {
 	var createContestRequest domain.CreateContestRequest
 	if err := c.ShouldBindJSON(&createContestRequest); err != nil {
@@ -54,16 +55,17 @@ func (h *ContestHandler) CreateContest(c *gin.Context) {
 }
 
 // GetContestDetails godoc
-// @Summary      Get Contest Details
-// @Description  Get details of a specific contest by ID
-// @Tags         Contest
-// @Produce      json
-// @Param        id   path      string  true  "Contest ID"
-// @Security     BearerAuth
-// @Success      200  {object}  domain.CreateContestResponse
-// @Failure      400  {object}  utils.ErrorResponse
-// @Failure      404  {object}  utils.ErrorResponse
-// @Router       /api/contest/{id} [get]
+//
+//	@Summary		Get Contest Details
+//	@Description	Get details of a specific contest by ID
+//	@Tags			Contest
+//	@Produce		json
+//	@Param			id	path	string	true	"Contest ID"
+//	@Security		BearerAuth
+//	@Success		200	{object}	domain.CreateContestResponse
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		404	{object}	utils.ErrorResponse
+//	@Router			/api/contest/{id} [get]
 func (h *ContestHandler) GetContestDetails(c *gin.Context) {
 	contestId := c.Param("id")
 	if contestId == "" {
@@ -81,17 +83,18 @@ func (h *ContestHandler) GetContestDetails(c *gin.Context) {
 }
 
 // UpdateContest godoc
-// @Summary      Update a Contest
-// @Description  Update an existing contest (admin or problem-setter only)
-// @Tags         Contest
-// @Accept       json
-// @Produce      json
-// @Param        updateContestRequest  body      domain.UpdateContestRequest  true  "Update Contest Request"
-// @Security     BearerAuth
-// @Success      200  {object}  domain.UpdateContestResponse
-// @Failure      400  {object}  utils.ErrorResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/contest/update [put]
+//
+//	@Summary		Update a Contest
+//	@Description	Update an existing contest (admin or problem-setter only)
+//	@Tags			Contest
+//	@Accept			json
+//	@Produce		json
+//	@Param			updateContestRequest	body	domain.UpdateContestRequest	true	"Update Contest Request"
+//	@Security		BearerAuth
+//	@Success		200	{object}	domain.UpdateContestResponse
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/contest/update [put]
 func (h *ContestHandler) UpdateContest(c *gin.Context) {
 	var updateContestRequest domain.UpdateContestRequest
 	if err := c.ShouldBindJSON(&updateContestRequest); err != nil {
@@ -109,16 +112,17 @@ func (h *ContestHandler) UpdateContest(c *gin.Context) {
 }
 
 // DeleteContest godoc
-// @Summary      Delete a Contest
-// @Description  Delete a contest by ID (admin only)
-// @Tags         Contest
-// @Produce      json
-// @Param        id   path      string  true  "Contest ID"
-// @Security     BearerAuth
-// @Success      200  {object}  utils.SuccessResponse
-// @Failure      400  {object}  utils.ErrorResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/contest/{id} [delete]
+//
+//	@Summary		Delete a Contest
+//	@Description	Delete a contest by ID (admin only)
+//	@Tags			Contest
+//	@Produce		json
+//	@Param			id	path	string	true	"Contest ID"
+//	@Security		BearerAuth
+//	@Success		200	{object}	utils.SuccessResponse
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/contest/{id} [delete]
 func (h *ContestHandler) DeleteContest(c *gin.Context) {
 	contestId := c.Param("id")
 	if contestId == "" {
@@ -137,14 +141,15 @@ func (h *ContestHandler) DeleteContest(c *gin.Context) {
 }
 
 // GetAllContests godoc
-// @Summary      Get All Contests (Admin)
-// @Description  Get all contests (admin only)
-// @Tags         Contest
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {array}  domain.CreateContestResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/admin/contests [get]
+//
+//	@Summary		Get All Contests (Admin)
+//	@Description	Get all contests (admin only)
+//	@Tags			Contest
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{array}		domain.CreateContestResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/admin/contests [get]
 func (h *ContestHandler) GetAllContests(c *gin.Context) {
 	contests, err := h.contestUseCase.GetAllContests(c.Request.Context())
 	if err != nil {

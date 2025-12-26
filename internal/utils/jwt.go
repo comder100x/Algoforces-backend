@@ -1,20 +1,19 @@
 package utils
 
 import (
+	"algoforces/internal/conf"
 	"errors"
 	"time"
-	"algoforces/internal/conf"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
-
 var jwtSecret = conf.JWT_SECRET
-
 
 type JWTToken struct {
 	UserID string `json:"user_id"`
-	Role string `json:"role"`
-	Email string `json:"email"`
+	Role   string `json:"role"`
+	Email  string `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -22,11 +21,11 @@ type JWTToken struct {
 func GenerateToken(userId string, role string, email string) (string, error) {
 	jwtPayload := JWTToken{
 		UserID: userId,
-		Role: role,
-		Email: email,
+		Role:   role,
+		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 

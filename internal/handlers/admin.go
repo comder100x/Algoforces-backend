@@ -19,17 +19,18 @@ func NewAdminHandler(adminUseCase domain.AdminUseCase) *AdminHandler {
 }
 
 // AddRole godoc
-// @Summary      Add Role to User
-// @Description  Assign a new role to a user
-// @Tags         Admin
-// @Accept       json
-// @Produce      json
-// @Param        addRoleRequest  body      domain.AddRoleRequest  true  "Add Role Request"
-// @Security     BearerAuth
-// @Success      200  {object}  domain.AddRoleResponse
-// @Failure      400  {object}  utils.ErrorResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/admin/addrole [put]
+//
+//	@Summary		Add Role to User
+//	@Description	Assign a new role to a user
+//	@Tags			Admin
+//	@Accept			json
+//	@Produce		json
+//	@Param			addRoleRequest	body	domain.AddRoleRequest	true	"Add Role Request"
+//	@Security		BearerAuth
+//	@Success		200	{object}	domain.AddRoleResponse
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/admin/addrole [put]
 func (h *AdminHandler) AddRole(c *gin.Context) {
 	var addRoleRequest domain.AddRoleRequest
 	if err := c.ShouldBindJSON(&addRoleRequest); err != nil {
@@ -47,17 +48,18 @@ func (h *AdminHandler) AddRole(c *gin.Context) {
 }
 
 // RemoveRole godoc
-// @Summary      Remove Role from User
-// @Description  Remove a role from a user
-// @Tags         Admin
-// @Accept       json
-// @Produce      json
-// @Param        removeRoleRequest  body      domain.RemoveRoleRequest  true  "Remove Role Request"
-// @Security     BearerAuth
-// @Success      200  {object}  domain.RemoveRoleResponse
-// @Failure      400  {object}  utils.ErrorResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/admin/removerole [put]
+//
+//	@Summary		Remove Role from User
+//	@Description	Remove a role from a user
+//	@Tags			Admin
+//	@Accept			json
+//	@Produce		json
+//	@Param			removeRoleRequest	body	domain.RemoveRoleRequest	true	"Remove Role Request"
+//	@Security		BearerAuth
+//	@Success		200	{object}	domain.RemoveRoleResponse
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/admin/removerole [put]
 func (h *AdminHandler) RemoveRole(c *gin.Context) {
 	var removeRoleRequest domain.RemoveRoleRequest
 	if err := c.ShouldBindJSON(&removeRoleRequest); err != nil {
@@ -75,14 +77,15 @@ func (h *AdminHandler) RemoveRole(c *gin.Context) {
 }
 
 // GetAllUsers godoc
-// @Summary      Get All Users
-// @Description  Get list of all users (admin only)
-// @Tags         Admin
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {object}  domain.UserListResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/admin/users [get]
+//
+//	@Summary		Get All Users
+//	@Description	Get list of all users (admin only)
+//	@Tags			Admin
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	domain.UserListResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/admin/users [get]
 func (h *AdminHandler) GetAllUsers(c *gin.Context) {
 	response, err := h.adminUseCase.GetAllUsers(c.Request.Context())
 	if err != nil {
@@ -94,14 +97,15 @@ func (h *AdminHandler) GetAllUsers(c *gin.Context) {
 }
 
 // GetAdmins godoc
-// @Summary      Get All Admins
-// @Description  Get list of all admin users (admin only)
-// @Tags         Admin
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {object}  domain.UserListResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/admin/admins [get]
+//
+//	@Summary		Get All Admins
+//	@Description	Get list of all admin users (admin only)
+//	@Tags			Admin
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	domain.UserListResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/admin/admins [get]
 func (h *AdminHandler) GetAdmins(c *gin.Context) {
 	response, err := h.adminUseCase.GetUsersByRole(c.Request.Context(), "admin")
 	if err != nil {
@@ -113,14 +117,15 @@ func (h *AdminHandler) GetAdmins(c *gin.Context) {
 }
 
 // GetProblemSetters godoc
-// @Summary      Get All Problem Setters
-// @Description  Get list of all problem setter users (admin only)
-// @Tags         Admin
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {object}  domain.UserListResponse
-// @Failure      500  {object}  utils.ErrorResponse
-// @Router       /api/admin/problem-setters [get]
+//
+//	@Summary		Get All Problem Setters
+//	@Description	Get list of all problem setter users (admin only)
+//	@Tags			Admin
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	domain.UserListResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/admin/problem-setters [get]
 func (h *AdminHandler) GetProblemSetters(c *gin.Context) {
 	response, err := h.adminUseCase.GetUsersByRole(c.Request.Context(), "problem_setter")
 	if err != nil {

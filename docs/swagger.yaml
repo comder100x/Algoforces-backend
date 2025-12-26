@@ -39,6 +39,31 @@ definitions:
         - $ref: '#/definitions/domain.User'
         description: Returns user info (without password)
     type: object
+  domain.BulkProblemCreationRequest:
+    properties:
+      problems:
+        items:
+          $ref: '#/definitions/domain.ProblemCreationRequest'
+        minItems: 1
+        type: array
+    required:
+    - problems
+    type: object
+  domain.BulkProblemCreationResponse:
+    properties:
+      errors:
+        items:
+          type: string
+        type: array
+      failed_count:
+        type: integer
+      problems:
+        items:
+          $ref: '#/definitions/domain.ProblemCreationResponse'
+        type: array
+      success_count:
+        type: integer
+    type: object
   domain.ContestRegisterRequest:
     properties:
       contest_id:
@@ -132,6 +157,97 @@ definitions:
     required:
     - email
     - password
+    type: object
+  domain.ProblemCreationRequest:
+    properties:
+      difficulty:
+        enum:
+        - easy
+        - medium
+        - hard
+        type: string
+      memory_limit_in_mb:
+        description: 'default: 256 MB'
+        type: integer
+      statement:
+        type: string
+      time_limit_in_seconds:
+        description: 'default: 1 second'
+        type: integer
+      title:
+        type: string
+    required:
+    - difficulty
+    - statement
+    - title
+    type: object
+  domain.ProblemCreationResponse:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      difficulty:
+        type: string
+      memory_limit_in_mb:
+        type: integer
+      statement:
+        type: string
+      time_limit_in_seconds:
+        type: integer
+      title:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  domain.ProblemUpdateRequest:
+    properties:
+      difficulty:
+        enum:
+        - easy
+        - medium
+        - hard
+        type: string
+      memory_limit_in_mb:
+        description: 'default: 256 MB'
+        type: integer
+      statement:
+        type: string
+      time_limit_in_seconds:
+        description: 'default: 1 second'
+        type: integer
+      title:
+        type: string
+      unique_id:
+        type: string
+    required:
+    - difficulty
+    - statement
+    - title
+    - unique_id
+    type: object
+  domain.ProblemUpdateResponse:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      difficulty:
+        type: string
+      memory_limit_in_mb:
+        type: integer
+      statement:
+        type: string
+      time_limit_in_seconds:
+        type: integer
+      title:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
     type: object
   domain.RemoveRoleRequest:
     properties:
@@ -760,6 +876,204 @@ paths:
       summary: Health Check
       tags:
       - Health
+  /api/problem/{id}:
+    delete:
+      description: Delete a problem by ID (admin or creator only)
+      parameters:
+      - description: Problem ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a Problem
+      tags:
+      - Problem
+    get:
+      description: Get a specific problem by its unique ID
+      parameters:
+      - description: Problem ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.ProblemCreationResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Problem by ID
+      tags:
+      - Problem
+  /api/problem/all:
+    get:
+      description: Get all problems (authenticated users only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.ProblemCreationResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Problems
+      tags:
+      - Problem
+  /api/problem/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Create multiple problems at once (admin or problem-setter only)
+      parameters:
+      - description: Bulk Problem Creation Request
+        in: body
+        name: bulkRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.BulkProblemCreationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.BulkProblemCreationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create Multiple Problems in Bulk
+      tags:
+      - Problem
+  /api/problem/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new problem (admin or problem-setter only)
+      parameters:
+      - description: Problem Creation Request
+        in: body
+        name: problemRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ProblemCreationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.ProblemCreationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new Problem
+      tags:
+      - Problem
+  /api/problem/update:
+    put:
+      consumes:
+      - application/json
+      description: Update an existing problem (admin or creator only)
+      parameters:
+      - description: Problem Update Request
+        in: body
+        name: problemRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ProblemUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.ProblemUpdateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a Problem
+      tags:
+      - Problem
   /api/user/profile:
     get:
       description: Get the profile of the authenticated user
