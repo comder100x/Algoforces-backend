@@ -50,3 +50,12 @@ func (r *contestRepository) CheckContestInTimeWindow(ctx context.Context, startT
 	}
 	return contests, nil
 }
+
+func (r *contestRepository) GetAllContests(ctx context.Context) ([]domain.Contest, error) {
+	var contests []domain.Contest
+	err := r.db.WithContext(ctx).Order("created_at DESC").Find(&contests).Error
+	if err != nil {
+		return nil, err
+	}
+	return contests, nil
+}

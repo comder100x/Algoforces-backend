@@ -3,21 +3,23 @@ package domain
 import (
 	"context"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Contest struct {
-	Id             string    `json:"id" gorm:"primaryKey";type:uuid"`
-	Name           string    `json:"name" gorm:"not null"`
-	Description    string    `json:"description" gorm:""`
-	StartTime      time.Time `json:"start_time" gorm:"not null"`
-	EndTime        time.Time `json:"end_time" gorm:"not null"`
-	Duration       int       `json:"duration" gorm:"not null"` // in minutes
-	Visible        bool      `json:"visible" gorm:"default:false"`
-	CreatedBy      string    `json:"created_by" gorm:"type:uuid;not null"` //refrences User(Id)
-	IsActive       bool      `json:"is_active" gorm:"default:false"`
-	ProblemSetters []string  `json:"problem_setters" gorm:"type:uuid[]"`
-	CreatedAt      time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt      time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+	Id             string         `json:"id" gorm:"primaryKey";type:uuid"`
+	Name           string         `json:"name" gorm:"not null"`
+	Description    string         `json:"description" gorm:""`
+	StartTime      time.Time      `json:"start_time" gorm:"not null"`
+	EndTime        time.Time      `json:"end_time" gorm:"not null"`
+	Duration       int            `json:"duration" gorm:"not null"` // in minutes
+	Visible        bool           `json:"visible" gorm:"default:false"`
+	CreatedBy      string         `json:"created_by" gorm:"type:uuid;not null"` //refrences User(Id)
+	IsActive       bool           `json:"is_active" gorm:"default:false"`
+	ProblemSetters pq.StringArray `json:"problem_setters" gorm:"type:text[]"`
+	CreatedAt      time.Time      `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt      time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 type CreateContestRequest struct {
@@ -83,6 +85,7 @@ type ContestRepository interface {
 	UpdateContest(ctx context.Context, contest *Contest) error
 	DeleteContest(ctx context.Context, id string) error
 	CheckContestInTimeWindow(ctx context.Context, startTime, endTime time.Time) ([]Contest, error)
+	GetAllContests(ctx context.Context) ([]Contest, error)
 }
 
 type ContestUseCase interface {
@@ -91,4 +94,5 @@ type ContestUseCase interface {
 	GetContestDetails(ctx context.Context, id string) (*CreateContestResponse, error)
 	DeleteContest(ctx context.Context, req *DeleteContestRequest) error
 	StartContest(ctx context.Context, id string) error
+	GetAllContests(ctx context.Context) ([]CreateContestResponse, error)
 }

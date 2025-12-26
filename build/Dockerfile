@@ -14,7 +14,14 @@ RUN apt-get update && apt-get install -y \
 
 # Install Go tools (pinned versions compatible with Go 1.23)
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0 \
-    && go install github.com/air-verse/air@v1.61.0
+    && go install github.com/air-verse/air@v1.61.0 \
+    && go install github.com/swaggo/swag/cmd/swag@latest
+
+# Generate Swagger docs on container start
+RUN echo '#!/bin/bash\ncd /workspace && swag init -g cmd/api/main.go\nexec "$@"' > /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Keep container running for devcontainer
 CMD ["sleep", "infinity"]

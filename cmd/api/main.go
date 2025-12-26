@@ -38,7 +38,7 @@ func main() {
 	defer db.Close()
 
 	// Run migrations
-	err = db.AutoMigrate(&domain.User{}, &domain.Contest{})
+	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
@@ -47,13 +47,16 @@ func main() {
 	userRepo := postgres.NewUserRepository(db.DB)
 	adminRepo := postgres.NewAdminRepository(db.DB)
 	contestRepo := postgres.NewContestRepository(db.DB)
+	contestRegisterRepo := postgres.NewContestRegisterRepository(db.DB)
 	authService := services.NewAuthService(userRepo)
 	adminService := services.NewAdminService(adminRepo)
-	contestService := services.NewContestService(contestRepo)
+	contestService := services.NewContestService(contestRepo, userRepo)
+	contestRegisterService := services.NewContestRegisterService(contestRegisterRepo, contestRepo, userRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService)
 	adminHandler := handlers.NewAdminHandler(adminService)
 	contestHandler := handlers.NewContestHandler(contestService)
+	contestRegisterHandler := handlers.NewContestRegisterHandler(contestRegisterService)
 	// 3. Setup router
 	r := gin.Default()
 
@@ -88,6 +91,8 @@ func main() {
 		admin.GET("/users", adminHandler.GetAllUsers)
 		admin.GET("/admins", adminHandler.GetAdmins)
 		admin.GET("/problem-setters", adminHandler.GetProblemSetters)
+		admin.GET("/contests", contestHandler.GetAllContests)
+		admin.GET("/registrations", contestRegisterHandler.GetAllRegistrationsForAdmin)
 	}
 
 	// Contest routes (protected + admin/problem-setter role required)
@@ -98,6 +103,15 @@ func main() {
 		contest.GET("/:id", contestHandler.GetContestDetails)
 		contest.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), contestHandler.UpdateContest)
 		contest.DELETE("/:id", middleware.RoleMiddleware("admin"), contestHandler.DeleteContest)
+	}
+
+	// Contest registration routes (protected)
+	contestRegistration := r.Group("/api/contest")
+	contestRegistration.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user","admin"))
+	{
+		contestRegistration.POST("/register", contestRegisterHandler.RegisterContest)
+		contestRegistration.POST("/unregister", contestRegisterHandler.UnregisterContest)
+		contestRegistration.GET("/registrations", contestRegisterHandler.GetAllRegistrations)
 	}
 
 	// 5. Start the Server

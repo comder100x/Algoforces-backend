@@ -97,6 +97,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/contests": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all contests (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest"
+                ],
+                "summary": "Get All Contests (Admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.CreateContestResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/problem-setters": {
             "get": {
                 "security": [
@@ -117,6 +151,40 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/domain.UserListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/registrations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all contest registrations for all users (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-registration"
+                ],
+                "summary": "Get all contest registrations (Admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.AllRegisteredContestForUserResponse"
                         }
                     },
                     "500": {
@@ -336,6 +404,142 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/domain.CreateContestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest/register": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Register the current user for a contest",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-registration"
+                ],
+                "summary": "Register for a contest",
+                "parameters": [
+                    {
+                        "description": "Contest registration request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.ContestRegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.ContestRegisterResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest/registrations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all contests the current user is registered for",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-registration"
+                ],
+                "summary": "Get all contest registrations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.AllRegisteredContestForUserResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest/unregister": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Unregister the current user from a contest",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-registration"
+                ],
+                "summary": "Unregister from a contest",
+                "parameters": [
+                    {
+                        "description": "Contest unregister request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.ContestUnregisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
                         }
                     },
                     "400": {
@@ -631,6 +835,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.AllRegisteredContestForUserResponse": {
+            "type": "object",
+            "properties": {
+                "registrations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ContestRegisterResponse"
+                    }
+                }
+            }
+        },
         "domain.AuthResponse": {
             "type": "object",
             "properties": {
@@ -644,6 +859,48 @@ const docTemplate = `{
                             "$ref": "#/definitions/domain.User"
                         }
                     ]
+                }
+            }
+        },
+        "domain.ContestRegisterRequest": {
+            "type": "object",
+            "required": [
+                "contest_id"
+            ],
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ContestRegisterResponse": {
+            "type": "object",
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "registered_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ContestUnregisterRequest": {
+            "type": "object",
+            "required": [
+                "contest_id"
+            ],
+            "properties": {
+                "contest_id": {
+                    "type": "string"
                 }
             }
         },
@@ -666,8 +923,17 @@ const docTemplate = `{
                 "end_time": {
                     "type": "string"
                 },
+                "is_active": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
+                },
+                "problem_setters": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "start_time": {
                     "type": "string"
@@ -699,8 +965,17 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_active": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
+                },
+                "problem_setters": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "start_time": {
                     "type": "string"
@@ -806,8 +1081,17 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_active": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
+                },
+                "problem_setters": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "start_time": {
                     "type": "string"
@@ -839,8 +1123,17 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_active": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
+                },
+                "problem_setters": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "start_time": {
                     "type": "string"

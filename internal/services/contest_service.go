@@ -174,3 +174,30 @@ func (s *contestService) StartContest(ctx context.Context, id string) error {
 
 	return s.contestRepo.UpdateContest(ctx, contest)
 }
+
+func (s *contestService) GetAllContests(ctx context.Context) ([]domain.CreateContestResponse, error) {
+	contests, err := s.contestRepo.GetAllContests(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var contestResponses []domain.CreateContestResponse
+	for _, contest := range contests {
+		contestResponses = append(contestResponses, domain.CreateContestResponse{
+			Id:             contest.Id,
+			Name:           contest.Name,
+			Description:    contest.Description,
+			StartTime:      contest.StartTime,
+			EndTime:        contest.EndTime,
+			Duration:       contest.Duration,
+			Visible:        contest.Visible,
+			IsActive:       contest.IsActive,
+			ProblemSetters: contest.ProblemSetters,
+			CreatedBy:      contest.CreatedBy,
+			CreatedAt:      contest.CreatedAt,
+			UpdatedAt:      contest.UpdatedAt,
+		})
+	}
+
+	return contestResponses, nil
+}

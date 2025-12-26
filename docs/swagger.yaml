@@ -23,6 +23,13 @@ definitions:
       role:
         type: string
     type: object
+  domain.AllRegisteredContestForUserResponse:
+    properties:
+      registrations:
+        items:
+          $ref: '#/definitions/domain.ContestRegisterResponse'
+        type: array
+    type: object
   domain.AuthResponse:
     properties:
       access_token:
@@ -31,6 +38,33 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.User'
         description: Returns user info (without password)
+    type: object
+  domain.ContestRegisterRequest:
+    properties:
+      contest_id:
+        type: string
+    required:
+    - contest_id
+    type: object
+  domain.ContestRegisterResponse:
+    properties:
+      contest_id:
+        type: string
+      id:
+        type: string
+      registered_at:
+        type: string
+      status:
+        type: string
+      user_id:
+        type: string
+    type: object
+  domain.ContestUnregisterRequest:
+    properties:
+      contest_id:
+        type: string
+    required:
+    - contest_id
     type: object
   domain.CreateContestRequest:
     properties:
@@ -41,8 +75,14 @@ definitions:
         type: integer
       end_time:
         type: string
+      is_active:
+        type: boolean
       name:
         type: string
+      problem_setters:
+        items:
+          type: string
+        type: array
       start_time:
         type: string
       visible:
@@ -68,8 +108,14 @@ definitions:
         type: string
       id:
         type: string
+      is_active:
+        type: boolean
       name:
         type: string
+      problem_setters:
+        items:
+          type: string
+        type: array
       start_time:
         type: string
       updated_at:
@@ -136,8 +182,14 @@ definitions:
         type: string
       id:
         type: string
+      is_active:
+        type: boolean
       name:
         type: string
+      problem_setters:
+        items:
+          type: string
+        type: array
       start_time:
         type: string
       visible:
@@ -164,8 +216,14 @@ definitions:
         type: string
       id:
         type: string
+      is_active:
+        type: boolean
       name:
         type: string
+      problem_setters:
+        items:
+          type: string
+        type: array
       start_time:
         type: string
       updated_at:
@@ -310,6 +368,27 @@ paths:
       summary: Get All Admins
       tags:
       - Admin
+  /api/admin/contests:
+    get:
+      description: Get all contests (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.CreateContestResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Contests (Admin)
+      tags:
+      - Contest
   /api/admin/problem-setters:
     get:
       description: Get list of all problem setter users (admin only)
@@ -329,6 +408,27 @@ paths:
       summary: Get All Problem Setters
       tags:
       - Admin
+  /api/admin/registrations:
+    get:
+      consumes:
+      - application/json
+      description: Get all contest registrations for all users (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.AllRegisteredContestForUserResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all contest registrations (Admin)
+      tags:
+      - contest-registration
   /api/admin/removerole:
     put:
       consumes:
@@ -529,6 +629,91 @@ paths:
       summary: Create a new Contest
       tags:
       - Contest
+  /api/contest/register:
+    post:
+      consumes:
+      - application/json
+      description: Register the current user for a contest
+      parameters:
+      - description: Contest registration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ContestRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.ContestRegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Register for a contest
+      tags:
+      - contest-registration
+  /api/contest/registrations:
+    get:
+      consumes:
+      - application/json
+      description: Get all contests the current user is registered for
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.AllRegisteredContestForUserResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all contest registrations
+      tags:
+      - contest-registration
+  /api/contest/unregister:
+    post:
+      consumes:
+      - application/json
+      description: Unregister the current user from a contest
+      parameters:
+      - description: Contest unregister request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ContestUnregisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unregister from a contest
+      tags:
+      - contest-registration
   /api/contest/update:
     put:
       consumes:

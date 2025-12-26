@@ -135,3 +135,22 @@ func (h *ContestHandler) DeleteContest(c *gin.Context) {
 
 	utils.SendSuccess(c, http.StatusOK, nil, "Contest deleted successfully")
 }
+
+// GetAllContests godoc
+// @Summary      Get All Contests (Admin)
+// @Description  Get all contests (admin only)
+// @Tags         Contest
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {array}  domain.CreateContestResponse
+// @Failure      500  {object}  utils.ErrorResponse
+// @Router       /api/admin/contests [get]
+func (h *ContestHandler) GetAllContests(c *gin.Context) {
+	contests, err := h.contestUseCase.GetAllContests(c.Request.Context())
+	if err != nil {
+		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get contests")
+		return
+	}
+
+	utils.SendSuccess(c, http.StatusOK, contests, "Contests retrieved successfully")
+}
