@@ -38,7 +38,7 @@ func main() {
 	defer db.Close()
 
 	// Run migrations
-	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.Problem{})
+	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.Problem{}, &domain.TestCase{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
@@ -49,17 +49,20 @@ func main() {
 	contestRepo := postgres.NewContestRepository(db.DB)
 	contestRegisterRepo := postgres.NewContestRegisterRepository(db.DB)
 	problemRepo := postgres.NewProblemRepository(db.DB)
+	testCaseRepo := postgres.NewTestCaseRepository(db.DB)
 	authService := services.NewAuthService(userRepo)
 	adminService := services.NewAdminService(adminRepo)
 	contestService := services.NewContestService(contestRepo, userRepo)
 	contestRegisterService := services.NewContestRegisterService(contestRegisterRepo, contestRepo, userRepo)
 	problemService := services.NewProblemService(problemRepo, userRepo)
+	testCaseService := services.NewTestCaseService(testCaseRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService)
 	adminHandler := handlers.NewAdminHandler(adminService)
 	contestHandler := handlers.NewContestHandler(contestService)
 	contestRegisterHandler := handlers.NewContestRegisterHandler(contestRegisterService)
 	problemHandler := handlers.NewProblemHandler(problemService)
+	testCaseHandler := handlers.NewTestCaseHandler(testCaseService)
 	// 3. Setup router
 	r := gin.Default()
 
@@ -127,6 +130,18 @@ func main() {
 		problem.GET("/:id", problemHandler.GetProblemByID)
 		problem.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.UpdateProblem)
 		problem.DELETE("/:id", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.DeleteProblem)
+	}
+
+	// Test case routes (protected)
+	testCase := r.Group("/api/testcase")
+	testCase.Use(middleware.AuthMiddleware())
+	{
+		testCase.POST("/create", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.CreateTestCase)
+		testCase.POST("/bulk", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.UploadTestCasesInBulk)
+		testCase.GET("/problem/:problemId", testCaseHandler.GetAllTestCasesForProblem)
+		testCase.GET("/:id", testCaseHandler.GetTestCaseDetails)
+		testCase.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.UpdateTestCase)
+		testCase.DELETE("/:id", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.DeleteTestCase)
 	}
 
 	// 5. Start the Server

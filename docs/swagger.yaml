@@ -64,6 +64,22 @@ definitions:
       success_count:
         type: integer
     type: object
+  domain.BulkTestCaseUploadRequest:
+    properties:
+      test_cases:
+        items:
+          $ref: '#/definitions/domain.CreateTestCaseRequest'
+        type: array
+    required:
+    - test_cases
+    type: object
+  domain.BulkTestCaseUploadResponse:
+    properties:
+      created_test_cases:
+        items:
+          $ref: '#/definitions/domain.CreateTestCaseResponse'
+        type: array
+    type: object
   domain.ContestRegisterRequest:
     properties:
       contest_id:
@@ -147,6 +163,40 @@ definitions:
         type: string
       visible:
         type: boolean
+    type: object
+  domain.CreateTestCaseRequest:
+    properties:
+      input:
+        type: string
+      is_hidden:
+        type: boolean
+      order_position:
+        minimum: 1
+        type: integer
+      output:
+        type: string
+      problem_id:
+        type: string
+    required:
+    - input
+    - order_position
+    - output
+    - problem_id
+    type: object
+  domain.CreateTestCaseResponse:
+    properties:
+      input:
+        type: string
+      is_hidden:
+        type: boolean
+      order_position:
+        type: integer
+      output:
+        type: string
+      problem_id:
+        type: string
+      unique_id:
+        type: string
     type: object
   domain.LoginRequest:
     properties:
@@ -287,6 +337,22 @@ definitions:
     - password
     - username
     type: object
+  domain.TestCase:
+    properties:
+      input:
+        type: string
+      is_hidden:
+        type: boolean
+      order_position:
+        type: integer
+      output:
+        type: string
+      problem_id:
+        description: references Problem(UniqueID)
+        type: string
+      unique_id:
+        type: string
+    type: object
   domain.UpdateContestRequest:
     properties:
       description:
@@ -346,6 +412,43 @@ definitions:
         type: string
       visible:
         type: boolean
+    type: object
+  domain.UpdateTestCaseRequest:
+    properties:
+      input:
+        type: string
+      is_hidden:
+        type: boolean
+      order_position:
+        minimum: 1
+        type: integer
+      output:
+        type: string
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+    required:
+    - input
+    - order_position
+    - output
+    - problem_id
+    - unique_id
+    type: object
+  domain.UpdateTestCaseResponse:
+    properties:
+      input:
+        type: string
+      is_hidden:
+        type: boolean
+      order_position:
+        type: integer
+      output:
+        type: string
+      problem_id:
+        type: string
+      unique_id:
+        type: string
     type: object
   domain.UpdateUserProfileRequest:
     properties:
@@ -1074,6 +1177,221 @@ paths:
       summary: Update a Problem
       tags:
       - Problem
+  /api/testcase/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a test case by its unique ID
+      parameters:
+      - description: Test Case Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a test case
+      tags:
+      - TestCase
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific test case by its unique ID
+      parameters:
+      - description: Test Case Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.TestCase'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get test case details
+      tags:
+      - TestCase
+  /api/testcase/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Creates multiple test cases at once for a problem
+      parameters:
+      - description: Bulk test case upload request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.BulkTestCaseUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.BulkTestCaseUploadResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload test cases in bulk
+      tags:
+      - TestCase
+  /api/testcase/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new test case for a problem
+      parameters:
+      - description: Test case creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateTestCaseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.CreateTestCaseResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new test case
+      tags:
+      - TestCase
+  /api/testcase/problem/{problemId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all test cases associated with a specific problem
+      parameters:
+      - description: Problem ID
+        in: path
+        name: problemId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/domain.TestCase'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all test cases for a problem
+      tags:
+      - TestCase
+  /api/testcase/update:
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing test case
+      parameters:
+      - description: Test case update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateTestCaseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.UpdateTestCaseResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a test case
+      tags:
+      - TestCase
   /api/user/profile:
     get:
       description: Get the profile of the authenticated user

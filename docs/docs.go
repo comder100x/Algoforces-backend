@@ -1032,6 +1032,367 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/testcase/bulk": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates multiple test cases at once for a problem",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TestCase"
+                ],
+                "summary": "Upload test cases in bulk",
+                "parameters": [
+                    {
+                        "description": "Bulk test case upload request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.BulkTestCaseUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.BulkTestCaseUploadResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/testcase/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new test case for a problem",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TestCase"
+                ],
+                "summary": "Create a new test case",
+                "parameters": [
+                    {
+                        "description": "Test case creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.CreateTestCaseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.CreateTestCaseResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/testcase/problem/{problemId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all test cases associated with a specific problem",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TestCase"
+                ],
+                "summary": "Get all test cases for a problem",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Problem ID",
+                        "name": "problemId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/domain.TestCase"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/testcase/update": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing test case",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TestCase"
+                ],
+                "summary": "Update a test case",
+                "parameters": [
+                    {
+                        "description": "Test case update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.UpdateTestCaseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.UpdateTestCaseResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/testcase/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves details of a specific test case by its unique ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TestCase"
+                ],
+                "summary": "Get test case details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Test Case Unique ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.TestCase"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a test case by its unique ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TestCase"
+                ],
+                "summary": "Delete a test case",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Test Case Unique ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/user/profile": {
             "get": {
                 "security": [
@@ -1213,6 +1574,31 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.BulkTestCaseUploadRequest": {
+            "type": "object",
+            "required": [
+                "test_cases"
+            ],
+            "properties": {
+                "test_cases": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.CreateTestCaseRequest"
+                    }
+                }
+            }
+        },
+        "domain.BulkTestCaseUploadResponse": {
+            "type": "object",
+            "properties": {
+                "created_test_cases": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.CreateTestCaseResponse"
+                    }
+                }
+            }
+        },
         "domain.ContestRegisterRequest": {
             "type": "object",
             "required": [
@@ -1336,6 +1722,56 @@ const docTemplate = `{
                 },
                 "visible": {
                     "type": "boolean"
+                }
+            }
+        },
+        "domain.CreateTestCaseRequest": {
+            "type": "object",
+            "required": [
+                "input",
+                "order_position",
+                "output",
+                "problem_id"
+            ],
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "is_hidden": {
+                    "type": "boolean"
+                },
+                "order_position": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "output": {
+                    "type": "string"
+                },
+                "problem_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CreateTestCaseResponse": {
+            "type": "object",
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "is_hidden": {
+                    "type": "boolean"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "output": {
+                    "type": "string"
+                },
+                "problem_id": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
                 }
             }
         },
@@ -1541,6 +1977,30 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.TestCase": {
+            "type": "object",
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "is_hidden": {
+                    "type": "boolean"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "output": {
+                    "type": "string"
+                },
+                "problem_id": {
+                    "description": "references Problem(UniqueID)",
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.UpdateContestRequest": {
             "type": "object",
             "required": [
@@ -1626,6 +2086,60 @@ const docTemplate = `{
                 },
                 "visible": {
                     "type": "boolean"
+                }
+            }
+        },
+        "domain.UpdateTestCaseRequest": {
+            "type": "object",
+            "required": [
+                "input",
+                "order_position",
+                "output",
+                "problem_id",
+                "unique_id"
+            ],
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "is_hidden": {
+                    "type": "boolean"
+                },
+                "order_position": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "output": {
+                    "type": "string"
+                },
+                "problem_id": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.UpdateTestCaseResponse": {
+            "type": "object",
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "is_hidden": {
+                    "type": "boolean"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "output": {
+                    "type": "string"
+                },
+                "problem_id": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
                 }
             }
         },
