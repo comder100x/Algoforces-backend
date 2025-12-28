@@ -23,7 +23,8 @@ type SubmissionPayload struct {
 	ContestID         string            `json:"contest_id"`
 	Code              string            `json:"code"`
 	Language          string            `json:"language"`
-	TestCases         []domain.TestCase `json:"test_cases"`
+	VisibleTestCases  []domain.TestCase `json:"visible_test_cases"`
+	HiddenTestCases   []domain.TestCase `json:"hidden_test_cases"`
 	TimeLimitInSecond int               `json:"time_limit"`
 	MemoryLimitInMB   int               `json:"memory_limit"`
 }

@@ -6,10 +6,10 @@ import (
 	"algoforces/pkg/queue"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -43,14 +43,21 @@ func (jw *JudgeWorker) JudgeSubmission(ctx context.Context, task *asynq.Task) er
 
 	// Get language ID
 	languageID, err := judge0.GetLanguageID(payload.Language)
+	if err != nil {
+		return errors.New("failed to get language ID")
+	}
+	log.Printf("Language ID: %d", languageID)
+	log.Printf("Visible Test Cases: %d", len(payload.VisibleTestCases))
+	log.Printf("Hidden Test Cases: %d", len(payload.HiddenTestCases))
 
-	TotalTestCases := len(payload.TestCases)
+	TotalTestCases := len(payload.VisibleTestCases) + len(payload.HiddenTestCases)
 	passedTests := 0
 	var testResults []string
 	var maxTime float64
 	var maxMemory int
 
-	for i, testCase := range payload.TestCases {
+	isVisibleTestCaseFailed := false
+	for i, testCase := range payload.VisibleTestCases {
 		log.Printf("Running test case %d/%d for submission %s", i+1, TotalTestCases, payload.SubmissionID)
 
 		// Create submission request
@@ -98,14 +105,78 @@ func (jw *JudgeWorker) JudgeSubmission(ctx context.Context, task *asynq.Task) er
 
 		// Map Judge0 status to our verdict
 		verdict := jw.mapJudge0Status(finalResponse.Status.ID)
-		testResults = append(testResults, fmt.Sprintf("Test %d: %s", i+1, verdict))
+
+		// Create comprehensive test result using shared function
+		testResult := jw.formatTestResult(testCase, finalResponse, i+1, false)
+		testResults = append(testResults, testResult)
 
 		if verdict == domain.VerdictAccepted {
 			passedTests++
 		} else {
-			// Stop on first failure and update submission with error verdict
-			errorMsg := jw.formatFailedTestCase(testCase, finalResponse, i+1)
-			return jw.updateSubmissionError(ctx, payload.SubmissionID, verdict, errorMsg, passedTests, TotalTestCases, maxTime, maxMemory, testResults)
+			isVisibleTestCaseFailed = true
+		}
+	}
+	if isVisibleTestCaseFailed {
+		return jw.updateSubmissionError(ctx, payload.SubmissionID, domain.VerdictWrongAnswer, passedTests, TotalTestCases, maxTime, maxMemory, testResults)
+	}
+	for i, testCase := range payload.HiddenTestCases {
+		log.Printf("Running test case %d/%d for submission %s", i+1, TotalTestCases, payload.SubmissionID)
+
+		// Create submission request
+		submissionReqData := &judge0.SubmissionRequest{
+			SourceCode:     payload.Code,
+			LanguageID:     languageID,
+			Stdin:          testCase.Input,
+			CPUTimeLimit:   float64(payload.TimeLimitInSecond),
+			MemoryLimit:    payload.MemoryLimitInMB * 1024, // Convert MB to KB
+			ExpectedOutput: testCase.ExpectedOutput,
+		}
+
+		// SUBMIT TO JUDGE0
+		submissionResponse, err := jw.Judge0Client.CreateSubmission(submissionReqData)
+		if err != nil {
+			return err
+		}
+
+		// Wait for result - add buffer time for Judge0 queue latency (30 seconds)
+		maxWaitTime := time.Duration(payload.TimeLimitInSecond+30) * time.Second
+		_, err = jw.Judge0Client.WaitForCompletion(submissionResponse.Token, maxWaitTime)
+		if err != nil {
+			return err
+		}
+
+		// Get the final submission status with details
+		finalResponse, err := jw.Judge0Client.GetSubmissionStatus(submissionResponse.Token)
+		if err != nil {
+			return err
+		}
+
+		// Update max time and memory
+		if finalResponse.Time != nil {
+			if timeVal, err := strconv.ParseFloat(*finalResponse.Time, 64); err == nil {
+				timeInMS := timeVal * 1000.0 // Convert seconds to milliseconds
+				if timeInMS > maxTime {
+					maxTime = timeInMS
+				}
+			}
+		}
+
+		if finalResponse.Memory != nil && *finalResponse.Memory > maxMemory {
+			maxMemory = *finalResponse.Memory
+		}
+
+		// Map Judge0 status to our verdict
+		verdict := jw.mapJudge0Status(finalResponse.Status.ID)
+
+		// Create comprehensive test result using shared function
+		testNum := len(payload.VisibleTestCases) + i + 1
+		testResult := jw.formatTestResult(testCase, finalResponse, testNum, true)
+		testResults = append(testResults, testResult)
+
+		if verdict == domain.VerdictAccepted {
+			passedTests++
+		} else {
+			return jw.updateSubmissionError(ctx, payload.SubmissionID, verdict, passedTests, TotalTestCases, maxTime, maxMemory, testResults)
 		}
 	}
 
@@ -137,32 +208,47 @@ func (w *JudgeWorker) mapJudge0Status(statusID int) domain.VerdictStatus {
 	}
 }
 
-// formatFailedTestCase creates a detailed failure message
-func (w *JudgeWorker) formatFailedTestCase(testCase domain.TestCase, status *judge0.SubmissionStatus, testNum int) string {
-	var details strings.Builder
-	details.WriteString(fmt.Sprintf("Test Case #%d Failed\n", testNum))
+// formatTestResult creates a comprehensive single-line test result
+func (w *JudgeWorker) formatTestResult(testCase domain.TestCase, status *judge0.SubmissionStatus, testNum int, isHidden bool) string {
+	// Get the verdict for this test
+	verdict := w.mapJudge0Status(status.Status.ID)
 
-	if !testCase.IsHidden {
-		details.WriteString(fmt.Sprintf("Input: %s\n", testCase.Input))
-		details.WriteString(fmt.Sprintf("Expected: %s\n", testCase.ExpectedOutput))
-		if status.Stdout != nil {
-			details.WriteString(fmt.Sprintf("Got: %s\n", *status.Stdout))
+	// Create comprehensive test result
+	testResult := fmt.Sprintf("Test %d (%s): %s", testNum, testCase.UniqueID, verdict)
+
+	// Add execution details for visible tests
+	if !isHidden {
+
+		if status.Time != nil {
+			if timeVal, err := strconv.ParseFloat(*status.Time, 64); err == nil {
+				testResult += fmt.Sprintf(" | Time: %.2fms", timeVal*1000)
+			}
+		}
+		if status.Memory != nil {
+			testResult += fmt.Sprintf(" | Memory: %dKB", *status.Memory)
+		}
+
+		// Add input/output details (only for visible tests)
+		if !testCase.IsHidden {
+			testResult += fmt.Sprintf(" | Input: %s | Expected: %s", testCase.Input, testCase.ExpectedOutput)
+			if status.Stdout != nil && *status.Stdout != "" {
+				testResult += fmt.Sprintf(" | Got: %s", *status.Stdout)
+			}
+		}
+
+		// Add error details if any
+		if status.Stderr != nil && *status.Stderr != "" {
+			testResult += fmt.Sprintf(" | Stderr: %s", *status.Stderr)
+		}
+		if status.CompileOutput != nil && *status.CompileOutput != "" {
+			testResult += fmt.Sprintf(" | Compile: %s", *status.CompileOutput)
+		}
+		if status.Message != nil && *status.Message != "" {
+			testResult += fmt.Sprintf(" | Message: %s", *status.Message)
 		}
 	}
 
-	if status.Stderr != nil && *status.Stderr != "" {
-		details.WriteString(fmt.Sprintf("Stderr: %s\n", *status.Stderr))
-	}
-
-	if status.CompileOutput != nil && *status.CompileOutput != "" {
-		details.WriteString(fmt.Sprintf("Compilation: %s\n", *status.CompileOutput))
-	}
-
-	if status.Message != nil && *status.Message != "" {
-		details.WriteString(fmt.Sprintf("Message: %s\n", *status.Message))
-	}
-
-	return details.String()
+	return testResult
 }
 
 // updateSubmissionSuccess updates the submission with success result
@@ -196,7 +282,7 @@ func (w *JudgeWorker) updateSubmissionSuccess(ctx context.Context, submissionID 
 
 // updateSubmissionError updates submission with an error status
 func (w *JudgeWorker) updateSubmissionError(ctx context.Context, submissionID string,
-	verdict domain.VerdictStatus, errorMsg string, passed, total int,
+	verdict domain.VerdictStatus, passed, total int,
 	maxTime float64, maxMemory int, testResults []string) error {
 
 	now := time.Now()
@@ -210,7 +296,7 @@ func (w *JudgeWorker) updateSubmissionError(ctx context.Context, submissionID st
 		ExecutionTimeInMS: float64(maxTime),
 		MemoryUsedInKB:    float64(maxMemory),
 		TestCaseResults:   testResults,
-		FailedTestCase:    &errorMsg,
+		FailedTestCase:    nil,
 		JudgeCompletedAt:  &now,
 	})
 	if err != nil {
@@ -218,8 +304,8 @@ func (w *JudgeWorker) updateSubmissionError(ctx context.Context, submissionID st
 		return fmt.Errorf("failed to update submission result: %w", err)
 	}
 
-	log.Printf("Submission %s completed with verdict: %s (%d/%d tests passed) - %s",
-		submissionID, verdict, passed, total, errorMsg)
+	log.Printf("Submission %s completed with verdict: %s (%d/%d tests passed)",
+		submissionID, verdict, passed, total)
 
 	return nil
 }

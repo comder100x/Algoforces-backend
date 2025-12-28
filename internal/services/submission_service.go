@@ -29,6 +29,16 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 		return nil, err
 	}
 
+	var hiddenTestCases []domain.TestCase
+	var visibleTestCases []domain.TestCase
+	for _, testCase := range testCases {
+		if testCase.IsHidden {
+			hiddenTestCases = append(hiddenTestCases, testCase)
+		} else {
+			visibleTestCases = append(visibleTestCases, testCase)
+		}
+	}
+
 	submissionID := uuid.New().String()
 	timNow := time.Now()
 	//Update the DB Status
@@ -55,7 +65,8 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 		ContestID:         req.ContestID,
 		Code:              req.Code,
 		Language:          req.Language,
-		TestCases:         testCases,
+		HiddenTestCases:   hiddenTestCases,
+		VisibleTestCases:  visibleTestCases,
 		TimeLimitInSecond: req.TimeLimitInSecond,
 		MemoryLimitInMB:   req.MemoryLimitInMB,
 	}
