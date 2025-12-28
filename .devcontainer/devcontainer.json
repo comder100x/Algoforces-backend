@@ -3,7 +3,12 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspace",
-	"forwardPorts": [8080, 5432],
+	"forwardPorts": [
+		8080,
+		5432,
+		6379,
+		2358
+	],
 	"features": {
 		"ghcr.io/devcontainers/features/git:1": {},
 		"ghcr.io/devcontainers/features/github-cli:1": {}
@@ -33,6 +38,3 @@
 	"postCreateCommand": "go mod download && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
 	"remoteUser": "root"
 }
-
-
-

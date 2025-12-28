@@ -34,7 +34,7 @@ func (r *submissionRepository) GetSubmissionDetails(ctx context.Context, uniqueI
 
 // UpdateSubmissionStatus updates the submission record
 func (r *submissionRepository) UpdateSubmissionStatus(ctx context.Context, submissionID, status string) error {
-	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Update("status", status).Error
+	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Update("verdict", status).Error
 }
 
 func (r *submissionRepository) GetAllTestCasesForProblem(ctx context.Context, problemID string) ([]domain.TestCase, error) {
@@ -44,4 +44,8 @@ func (r *submissionRepository) GetAllTestCasesForProblem(ctx context.Context, pr
 		return nil, err
 	}
 	return testCases, nil
+}
+
+func (r *submissionRepository) UpdateSubmissionResult(ctx context.Context, submissionID string, result *domain.Submission) error {
+	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Updates(result).Error
 }

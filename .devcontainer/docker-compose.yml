@@ -17,10 +17,45 @@ services:
       - DB_PASSWORD=postgres
       - DB_NAME=algoforces
       - DB_SSLMODE=disable
+      - REDIS_URL=redis:6379
+      - JUDGE0_URL=http://judge0-server:2358
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
+      judge0-server:
+        condition: service_started
     command: sleep infinity
+
+  # Worker service - processes submission queue
+  worker:
+    build:
+      context: ..
+      dockerfile: build/worker.Dockerfile
+      target: development
+    volumes:
+      - ..:/workspace:cached
+      - go-modules:/go/pkg/mod
+    working_dir: /workspace
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=algoforces
+      - DB_SSLMODE=disable
+      - REDIS_URL=redis:6379
+      - JUDGE0_URL=http://judge0-server:2358
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      judge0-server:
+        condition: service_started
+    command: sh -c "sleep 10 && go run cmd/worker/worker.go"
+    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
@@ -39,6 +74,90 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis for Asynq task queue
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Judge0 Worker - processes code submissions
+  judge0-worker:
+    image: judge0/judge0:1.13.1
+    restart: unless-stopped
+    env_file: judge0.conf
+    environment:
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=judge0
+      - POSTGRES_DB=judge0
+    depends_on:
+      judge0-redis:
+        condition: service_started
+      judge0-db:
+        condition: service_healthy
+    privileged: true
+    command: ["./scripts/workers"]
+
+  # Judge0 Server - API endpoint
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    restart: unless-stopped
+    ports:
+      - "2358:2358"
+    env_file: judge0.conf
+    environment:
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=judge0
+      - POSTGRES_DB=judge0
+    depends_on:
+      judge0-redis:
+        condition: service_started
+      judge0-db:
+        condition: service_healthy
+    command: ["./scripts/server"]
+
+  # Redis for Judge0
+  judge0-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file: judge0.conf
+    command: sh -c 'redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"'
+    volumes:
+      - judge0-redis-data:/data
+
+  # PostgreSQL for Judge0
+  judge0-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: judge0.conf
+    environment:
+      - POSTGRES_USER=judge0
+      - POSTGRES_DB=judge0
+    volumes:
+      - judge0-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge0 -d judge0"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres-data:
   go-modules:
+  redis-data:
+  judge0-redis-data:
+  judge0-db-data:

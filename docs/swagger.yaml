@@ -164,6 +164,54 @@ definitions:
       visible:
         type: boolean
     type: object
+  domain.CreateSubmissionRequest:
+    properties:
+      code:
+        type: string
+      contest_id:
+        type: string
+      language:
+        enum:
+        - python
+        - cpp
+        - java
+        type: string
+      memory_limit:
+        type: integer
+      problem_id:
+        type: string
+      time_limit:
+        type: integer
+      user_id:
+        type: string
+    required:
+    - code
+    - contest_id
+    - language
+    - memory_limit
+    - problem_id
+    - time_limit
+    - user_id
+    type: object
+  domain.CreateSubmissionResponse:
+    properties:
+      contest_id:
+        type: string
+      language:
+        type: string
+      message:
+        type: string
+      problem_id:
+        type: string
+      submitted_at:
+        type: string
+      unique_id:
+        type: string
+      user_id:
+        type: string
+      verdict:
+        type: string
+    type: object
   domain.CreateTestCaseRequest:
     properties:
       input:
@@ -1177,6 +1225,116 @@ paths:
       summary: Update a Problem
       tags:
       - Problem
+  /api/submission/{id}:
+    get:
+      description: Get details of a specific submission by its ID
+      parameters:
+      - description: Submission ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get submission details
+      tags:
+      - Submission
+  /api/submission/{id}/update:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a specific submission
+      parameters:
+      - description: Submission ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status Update Request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update submission status
+      tags:
+      - Submission
+  /api/submission/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new code submission for evaluation
+      parameters:
+      - description: Create Submission Request
+        in: body
+        name: createSubmissionRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateSubmissionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.CreateSubmissionResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new submission
+      tags:
+      - Submission
   /api/testcase/{id}:
     delete:
       consumes:

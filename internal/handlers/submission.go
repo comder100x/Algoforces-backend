@@ -18,6 +18,19 @@ func NewSubmissionHandler(submissionUseCase domain.SubmissionUseCase) *Submissio
 	}
 }
 
+// CreateSubmission godoc
+//
+//	@Summary		Create a new submission
+//	@Description	Create a new code submission for evaluation
+//	@Tags			Submission
+//	@Security		BearerAuth
+//	@Accept			json
+//	@Produce		json
+//	@Param			createSubmissionRequest	body		domain.CreateSubmissionRequest	true	"Create Submission Request"
+//	@Success		201							{object}	utils.SuccessResponse{data=domain.CreateSubmissionResponse}
+//	@Failure		400							{object}	utils.ErrorResponse
+//	@Failure		500							{object}	utils.ErrorResponse
+//	@Router			/api/submission/create [post]
 func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 	var createSubmissionRequest domain.CreateSubmissionRequest
 	if err := ctx.ShouldBindJSON(&createSubmissionRequest); err != nil {
@@ -35,6 +48,18 @@ func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 	utils.SendSuccess(ctx, http.StatusCreated, createSubmissionResponse, "Submission created successfully")
 }
 
+// GetSubmissionDetails godoc
+//
+//	@Summary		Get submission details
+//	@Description	Get details of a specific submission by its ID
+//	@Tags			Submission
+//	@Security		BearerAuth
+//	@Produce		json
+//	@Param			id	path		string	true	"Submission ID"
+//	@Success		200	{object}	utils.SuccessResponse{data=object}
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		404	{object}	utils.ErrorResponse
+//	@Router			/api/submission/{id} [get]
 func (h *SubmissionHandler) GetSubmissionDetails(ctx *gin.Context) {
 	submissionID := ctx.Param("id")
 	if submissionID == "" {
@@ -52,6 +77,20 @@ func (h *SubmissionHandler) GetSubmissionDetails(ctx *gin.Context) {
 	utils.SendSuccess(ctx, http.StatusOK, submission, "Submission details retrieved successfully")
 }
 
+// UpdateSubmissionStatus godoc
+//
+//	@Summary		Update submission status
+//	@Description	Update the status of a specific submission
+//	@Tags			Submission
+//	@Security		BearerAuth
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string					true	"Submission ID"
+//	@Param			request	body		map[string]string		true	"Status Update Request"
+//	@Success		200		{object}	utils.SuccessResponse
+//	@Failure		400		{object}	utils.ErrorResponse
+//	@Failure		500		{object}	utils.ErrorResponse
+//	@Router			/api/submission/{id}/update [put]
 func (h *SubmissionHandler) UpdateSubmissionStatus(ctx *gin.Context) {
 	submissionID := ctx.Param("id")
 	if submissionID == "" {

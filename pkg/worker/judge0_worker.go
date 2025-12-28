@@ -47,7 +47,6 @@ func (jw *JudgeWorker) JudgeSubmission(ctx context.Context, task *asynq.Task) er
 	TotalTestCases := len(payload.TestCases)
 	passedTests := 0
 	var testResults []string
-	var failedTestCase string
 	var maxTime float64
 	var maxMemory int
 
@@ -84,8 +83,11 @@ func (jw *JudgeWorker) JudgeSubmission(ctx context.Context, task *asynq.Task) er
 
 		// Update max time and memory
 		if finalResponse.Time != nil {
-			if timeVal, err := strconv.ParseFloat(*finalResponse.Time, 64); err == nil && timeVal > maxTime {
-				maxTime = timeVal
+			if timeVal, err := strconv.ParseFloat(*finalResponse.Time, 64); err == nil {
+				timeInMS := timeVal * 1000.0 // Convert seconds to milliseconds
+				if timeInMS > maxTime {
+					maxTime = timeInMS
+				}
 			}
 		}
 
@@ -100,14 +102,9 @@ func (jw *JudgeWorker) JudgeSubmission(ctx context.Context, task *asynq.Task) er
 		if verdict == domain.VerdictAccepted {
 			passedTests++
 		} else {
-			// Record first failure
-			if failedTestCase == "" {
-				failedTestCase = jw.formatFailedTestCase(testCase, finalResponse, i+1)
-			}
-
 			// Stop on first failure and update submission with error verdict
 			errorMsg := jw.formatFailedTestCase(testCase, finalResponse, i+1)
-			return jw.updateSubmissionError(ctx, payload.SubmissionID, verdict, errorMsg, passedTests, TotalTestCases, maxTime, maxMemory)
+			return jw.updateSubmissionError(ctx, payload.SubmissionID, verdict, errorMsg, passedTests, TotalTestCases, maxTime, maxMemory, testResults)
 		}
 	}
 
@@ -172,8 +169,21 @@ func (w *JudgeWorker) updateSubmissionSuccess(ctx context.Context, submissionID 
 	verdict domain.VerdictStatus, passed, total int, results []string,
 	maxTime float64, maxMemory int) error {
 
-	// Update submission status with verdict
-	if err := w.submissionRepo.UpdateSubmissionStatus(ctx, submissionID, string(verdict)); err != nil {
+	now := time.Now()
+
+	// Update submission result
+	err := w.submissionRepo.UpdateSubmissionResult(ctx, submissionID, &domain.Submission{
+		Verdict:           string(verdict),
+		Score:             passed,
+		TestCasesPassed:   passed,
+		TotalTestCases:    total,
+		ExecutionTimeInMS: float64(maxTime),
+		MemoryUsedInKB:    float64(maxMemory),
+		TestCaseResults:   results,
+		FailedTestCase:    nil, // No failed test case for success
+		JudgeCompletedAt:  &now,
+	})
+	if err != nil {
 		return fmt.Errorf("failed to update submission result: %w", err)
 	}
 
@@ -186,22 +196,29 @@ func (w *JudgeWorker) updateSubmissionSuccess(ctx context.Context, submissionID 
 // updateSubmissionError updates submission with an error status
 func (w *JudgeWorker) updateSubmissionError(ctx context.Context, submissionID string,
 	verdict domain.VerdictStatus, errorMsg string, passed, total int,
-	maxTime float64, maxMemory int) error {
+	maxTime float64, maxMemory int, testResults []string) error {
 
-	if err := w.submissionRepo.UpdateSubmissionStatus(ctx, submissionID, string(verdict)); err != nil {
+	now := time.Now()
+
+	// Update submission result with error details
+	err := w.submissionRepo.UpdateSubmissionResult(ctx, submissionID, &domain.Submission{
+		Verdict:           string(verdict),
+		Score:             0, // No score for failed submissions
+		TestCasesPassed:   passed,
+		TotalTestCases:    total,
+		ExecutionTimeInMS: float64(maxTime),
+		MemoryUsedInKB:    float64(maxMemory),
+		TestCaseResults:   testResults,
+		FailedTestCase:    &errorMsg,
+		JudgeCompletedAt:  &now,
+	})
+	if err != nil {
 		log.Printf("Failed to update error status: %v", err)
-		return fmt.Errorf("failed to update submission status: %w", err)
+		return fmt.Errorf("failed to update submission result: %w", err)
 	}
 
 	log.Printf("Submission %s completed with verdict: %s (%d/%d tests passed) - %s",
 		submissionID, verdict, passed, total, errorMsg)
 
 	return nil
-}
-
-// parseFloat safely parses a float from string
-func parseFloat(s string) float64 {
-	var f float64
-	fmt.Sscanf(s, "%f", &f)
-	return f
 }

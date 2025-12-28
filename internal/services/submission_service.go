@@ -93,3 +93,43 @@ func (s *SubmissionService) UpdateSubmissionStatus(ctx context.Context, submissi
 func (s *SubmissionService) GetSubmissionDetails(ctx context.Context, uniqueID string) (*domain.Submission, error) {
 	return s.submissionRepo.GetSubmissionDetails(ctx, uniqueID)
 }
+
+func (s *SubmissionService) UpdateSubmissionResult(ctx context.Context, submissionID string, req *domain.UpdateSubmissionResultRequest) (*domain.UpdateSubmissionResultResponse, error) {
+	result := &domain.Submission{
+		Verdict:           req.Verdict,
+		Score:             req.Score,
+		TestCasesPassed:   req.TestCasesPassed,
+		TotalTestCases:    req.TotalTestCases,
+		ExecutionTimeInMS: req.ExecutionTimeInMS,
+		MemoryUsedInKB:    req.MemoryUsedInKB,
+		CompilationError:  req.CompilationError,
+		RuntimeError:      req.RuntimeError,
+		TestCaseResults:   req.TestCaseResults,
+		FailedTestCase:    req.FailedTestCase,
+		JudgeCompletedAt:  req.JudgeCompletedAt,
+	}
+	err := s.submissionRepo.UpdateSubmissionResult(ctx, submissionID, result)
+	if err != nil {
+		return nil, err
+	}
+	return &domain.UpdateSubmissionResultResponse{
+		UniqueID:          submissionID,
+		UserID:            result.UserId,
+		ContestID:         result.ContestID,
+		ProblemID:         result.ProblemID,
+		Language:          result.Language,
+		Verdict:           result.Verdict,
+		SubmittedAt:       result.SubmittedAt,
+		Message:           "Submission result updated successfully",
+		Score:             result.Score,
+		TestCasesPassed:   result.TestCasesPassed,
+		TotalTestCases:    result.TotalTestCases,
+		ExecutionTimeInMS: result.ExecutionTimeInMS,
+		MemoryUsedInKB:    result.MemoryUsedInKB,
+		CompilationError:  result.CompilationError,
+		RuntimeError:      result.RuntimeError,
+		TestCaseResults:   result.TestCaseResults,
+		FailedTestCase:    result.FailedTestCase,
+		JudgeCompletedAt:  result.JudgeCompletedAt,
+	}, nil
+}
