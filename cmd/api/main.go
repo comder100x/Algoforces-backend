@@ -1,12 +1,14 @@
 package main
 
 import (
+	"algoforces/internal/conf"
 	"algoforces/internal/domain"
 	"algoforces/internal/handlers"
 	"algoforces/internal/middleware"
 	"algoforces/internal/repository/postgres"
 	"algoforces/internal/services"
 	"algoforces/pkg/database"
+	"algoforces/pkg/queue"
 	"fmt"
 	"log"
 
@@ -42,6 +44,14 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
+
+	// Initialiaze queue
+	submissionQueue, err := queue.NewSubmissionQueue(conf.REDIS_URL)
+	if err != nil {
+		log.Fatal("Failed to initialize submission queue:", err)
+	}
+
+	defer submissionQueue.Close()
 
 	// 2. Initialize dependencies
 	userRepo := postgres.NewUserRepository(db.DB)

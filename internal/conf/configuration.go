@@ -16,6 +16,8 @@ const (
 	defaultDB_PASSWORD = "postgres"
 	defaultDB_NAME     = "algoforces"
 	defaultDB_SSLMODE  = "disable"
+	defaultREDIS_ADDR  = "localhost:6379"
+	defaultJUDGE0_URL  = "http://localhost:2358"
 )
 
 // Configuration variables with defaults and environment overrides
@@ -27,6 +29,8 @@ var (
 	DB_PASSWORD string
 	DB_NAME     string
 	DB_SSLMODE  string
+	REDIS_URL   string
+	JUDGE0_URL  string
 )
 
 // init function runs when the package is imported
@@ -39,7 +43,8 @@ func init() {
 	DB_PASSWORD = defaultDB_PASSWORD
 	DB_NAME = defaultDB_NAME
 	DB_SSLMODE = defaultDB_SSLMODE
-
+	REDIS_URL = defaultREDIS_ADDR
+	JUDGE0_URL = defaultJUDGE0_URL
 	fmt.Println("db host", DB_HOST)
 
 	// Override with environment variables if they exist
@@ -63,5 +68,12 @@ func init() {
 	}
 	if envValue := os.Getenv("DB_SSLMODE"); envValue != "" {
 		DB_SSLMODE = envValue
+	}
+	if envValue := os.Getenv("REDIS_URL"); envValue != "" {
+		REDIS_URL = envValue
+	}
+
+	if envValue := os.Getenv("JUDGE0_URL"); envValue != "" {
+		JUDGE0_URL = envValue
 	}
 }
