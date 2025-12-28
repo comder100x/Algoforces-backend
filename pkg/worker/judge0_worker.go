@@ -69,8 +69,9 @@ func (jw *JudgeWorker) JudgeSubmission(ctx context.Context, task *asynq.Task) er
 			return err
 		}
 
-		//Wait for result
-		_, err = jw.Judge0Client.WaitForCompletion(submissionResponse.Token, time.Duration(payload.TimeLimitInSecond)*time.Second)
+		// Wait for result - add buffer time for Judge0 queue latency (30 seconds)
+		maxWaitTime := time.Duration(payload.TimeLimitInSecond+30) * time.Second
+		_, err = jw.Judge0Client.WaitForCompletion(submissionResponse.Token, maxWaitTime)
 		if err != nil {
 			return err
 		}

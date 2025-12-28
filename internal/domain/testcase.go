@@ -7,7 +7,7 @@ type TestCase struct {
 	ProblemID      string `json:"problem_id" gorm:"type:uuid;not null"` // references Problem(UniqueID)
 	Input          string `json:"input" gorm:"type:text;not null"`
 	ExpectedOutput string `json:"output" gorm:"type:text;not null"`
-	IsHidden       bool   `json:"is_hidden" gorm:"not null;default:true"`
+	IsHidden       bool   `json:"is_hidden" gorm:"not null"`
 	OrderPosition  int    `json:"order_position" gorm:"not null"`
 }
 
