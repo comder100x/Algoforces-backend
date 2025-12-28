@@ -35,9 +35,9 @@ type SubmissionQueue struct {
 }
 
 // NewSubmissionQueue creates a new submission queue client
-func NewSubmissionQueue(redisAddr string) (*SubmissionQueue, error) {
+func NewSubmissionQueue(redisURL string) (*SubmissionQueue, error) {
 	redisOpt := asynq.RedisClientOpt{
-		Addr: redisAddr,
+		Addr: redisURL,
 	}
 
 	client := asynq.NewClient(redisOpt)

@@ -60,12 +60,16 @@ func main() {
 	contestRegisterRepo := postgres.NewContestRegisterRepository(db.DB)
 	problemRepo := postgres.NewProblemRepository(db.DB)
 	testCaseRepo := postgres.NewTestCaseRepository(db.DB)
+	submissionRepo := postgres.NewSubmissionRepository(db.DB)
+
 	authService := services.NewAuthService(userRepo)
 	adminService := services.NewAdminService(adminRepo)
 	contestService := services.NewContestService(contestRepo, userRepo)
 	contestRegisterService := services.NewContestRegisterService(contestRegisterRepo, contestRepo, userRepo)
 	problemService := services.NewProblemService(problemRepo, userRepo)
 	testCaseService := services.NewTestCaseService(testCaseRepo)
+	submissionService := services.NewSubmissionService(submissionRepo, submissionQueue)
+
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService)
 	adminHandler := handlers.NewAdminHandler(adminService)
@@ -73,6 +77,7 @@ func main() {
 	contestRegisterHandler := handlers.NewContestRegisterHandler(contestRegisterService)
 	problemHandler := handlers.NewProblemHandler(problemService)
 	testCaseHandler := handlers.NewTestCaseHandler(testCaseService)
+	submissionHandler := handlers.NewSubmissionHandler(submissionService)
 	// 3. Setup router
 	r := gin.Default()
 
@@ -152,6 +157,15 @@ func main() {
 		testCase.GET("/:id", testCaseHandler.GetTestCaseDetails)
 		testCase.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.UpdateTestCase)
 		testCase.DELETE("/:id", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.DeleteTestCase)
+	}
+
+	// Submission routes (protected)
+	submission := r.Group("/api/submission")
+	submission.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user", "admin"))
+	{
+		submission.POST("/create", submissionHandler.CreateSubmission)
+		submission.GET("/:id", submissionHandler.GetSubmissionDetails)
+		submission.PUT("/update", submissionHandler.UpdateSubmissionStatus)
 	}
 
 	// 5. Start the Server

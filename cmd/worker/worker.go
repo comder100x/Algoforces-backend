@@ -1,9 +1,15 @@
 package worker
 
 import (
+	"algoforces/internal/conf"
 	"algoforces/internal/domain"
+	"algoforces/internal/repository/postgres"
 	"algoforces/pkg/database"
+	"algoforces/pkg/queue"
+	"algoforces/pkg/worker"
 	"log"
+
+	"github.com/hibiken/asynq"
 )
 
 func main() {
@@ -21,30 +27,29 @@ func main() {
 	}
 
 	// Initialize repository
-    submissionRepo := postgres.NewSubmissionRepository(db.DB)
+	submissionRepo := postgres.NewSubmissionRepository(db.DB)
 
-    // Initialize Judge Worker
-    judgeWorker := worker.NewJudgeWorker(submissionRepo, conf.JUDGE0_URL)
+	// Initialize Judge Worker
+	judgeWorker := worker.NewJudgeWorker(submissionRepo, conf.JUDGE0_URL)
 
-	 // Setup Asynq Server
-    redisOpt := asynq.RedisClientOpt{Addr: conf.REDIS_ADDR}
+	// Setup Asynq Server
+	redisOpt := asynq.RedisClientOpt{Addr: conf.REDIS_URL}
 
-	rv := asynq.NewServer(redisOpt, asynq.Config{
-        Concurrency: 10,
-        Queues: map[string]int{
-            "submission": 10,
-        },
-    })
+	srv := asynq.NewServer(redisOpt, asynq.Config{
+		Concurrency: 10,
+		Queues: map[string]int{
+			"submission": 10,
+		},
+	})
 
-    // Register task handlers
-    mux := asynq.NewServeMux()
-    mux.HandleFunc(queue.TypeSubmissionJudge, judgeWorker.JudgeSubmission)
+	// Register task handlers
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(queue.TypeSubmissionJudge, judgeWorker.JudgeSubmission)
 
-    // Start the server
-    log.Println("Starting Judge Worker...")
-    if err := srv.Run(mux); err != nil {
-        log.Fatal("Failed to start worker:", err)
-    }
-
+	// Start the server
+	log.Println("Starting Judge Worker...")
+	if err := srv.Run(mux); err != nil {
+		log.Fatal("Failed to start worker:", err)
+	}
 
 }

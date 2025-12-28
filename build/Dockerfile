@@ -10,12 +10,17 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     postgresql-client \
+    redis-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Go tools (pinned versions compatible with Go 1.23)
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0 \
     && go install github.com/air-verse/air@v1.61.0 \
     && go install github.com/swaggo/swag/cmd/swag@latest
+
+# Copy go.mod and go.sum to download dependencies
+COPY go.mod go.sum* ./
+RUN go mod download && go mod verify
 
 # Generate Swagger docs on container start
 RUN echo '#!/bin/bash\ncd /workspace && swag init -g cmd/api/main.go\nexec "$@"' > /usr/local/bin/docker-entrypoint.sh \
@@ -27,20 +32,25 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["sleep", "infinity"]
 
 # ===========================================
-# Build Stage - for production
+# Build Stage - for production API
 # ===========================================
 FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies
+RUN apk add --no-cache git
+
 # Copy dependency files first for better layer caching
 COPY go.mod go.sum ./
-RUN go mod download
+
+# Download all dependencies including asynq, gorm, gin, etc.
+RUN go mod download && go mod verify
 
 # Copy source code
 COPY . .
 
-# Build the application with optimizations
+# Build the API application with optimizations
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o main cmd/api/main.go
 
 # ===========================================
