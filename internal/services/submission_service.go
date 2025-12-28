@@ -68,9 +68,10 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 
 	// 7. Update DB status to "Queued"
 	queuedTime := time.Now()
-	submission.Verdict = string(domain.VerdictQueued)
-	submission.QueuedAt = &queuedTime
-	err = s.submissionRepo.UpdateSubmissionStatus(ctx, submissionID, string(domain.VerdictQueued))
+	err = s.submissionRepo.UpdateSubmissionResult(ctx, submissionID, &domain.Submission{
+		Verdict:  string(domain.VerdictQueued),
+		QueuedAt: &queuedTime,
+	})
 	if err != nil {
 		return nil, err
 	}
