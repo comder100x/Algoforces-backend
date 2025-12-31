@@ -167,6 +167,13 @@ type Judge0SubmissionResponse struct {
 	Token string `json:"token"`
 }
 
+// Batch submission types for Judge0
+type Judge0BatchSubmissionRequest struct {
+	Submissions []Judge0SubmissionRequest `json:"submissions"`
+}
+
+type Judge0BatchSubmissionResponse []Judge0SubmissionResponse
+
 // SubmissionStatus represents the status of a Judge0 submission
 
 type Judge0Status struct {

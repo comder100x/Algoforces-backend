@@ -76,28 +76,20 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 		return nil, err
 	}
 
-	// Get the testCases
-	var hiddenTestCases []domain.TestCase
-	var visibleTestCases []domain.TestCase
-	for _, testCase := range testCases {
-		if testCase.IsHidden {
-			hiddenTestCases = append(hiddenTestCases, testCase)
-		} else {
-			visibleTestCases = append(visibleTestCases, testCase)
-		}
-	}
 	callbackURL := os.Getenv("APP_URL") + "/api/submission/callback"
 	//Get the Language ID
 	languageID, err := GetLanguageID(req.Language)
-
 	if err != nil {
 		return nil, err
 	}
 
-	for _, testCase := range visibleTestCases {
-		//Make a submission to api
+	// Build batch submission request for all test cases
+	batchReq := &domain.Judge0BatchSubmissionRequest{
+		Submissions: make([]domain.Judge0SubmissionRequest, 0, len(testCases)),
+	}
 
-		submissionReqData := &domain.Judge0SubmissionRequest{
+	for _, testCase := range testCases {
+		batchReq.Submissions = append(batchReq.Submissions, domain.Judge0SubmissionRequest{
 			SourceCode:     req.Code,
 			LanguageID:     languageID,
 			Stdin:          testCase.Input,
@@ -105,20 +97,21 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 			MemoryLimit:    req.MemoryLimitInMB * 1024,
 			ExpectedOutput: testCase.ExpectedOutput,
 			CallbackURL:    callbackURL,
-		}
+		})
+	}
 
-		// Make a submission
-		var submissionResponseData *domain.Judge0SubmissionResponse
-		submissionResponseData, err := s.CreateJudge0Submission(submissionReqData)
-		if err != nil {
-			return nil, err
-		}
+	// Make batch submission to Judge0
+	batchResp, err := s.CreateJudge0BatchSubmission(batchReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create batch submission: %w", err)
+	}
 
-		// Make Token ---> [SubmissionID, testCaseID] mapping
+	// Create token mappings for each test case
+	for i, testCase := range testCases {
 		tokenMappingId := uuid.New().String()
 		tokenMapping := &domain.SubmissionTestCaseMapping{
 			UniqueID:           tokenMappingId,
-			Token:              submissionResponseData.Token,
+			Token:              batchResp[i].Token,
 			SubmissionID:       submissionID,
 			TestCaseID:         testCase.UniqueID,
 			TestOrderPosition:  testCase.OrderPosition,
@@ -131,49 +124,9 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 		if err != nil {
 			return nil, fmt.Errorf("failed to create token mapping: %w", err)
 		}
-
 	}
 
-	for _, testCase := range hiddenTestCases {
-		//Make a submission to api
-
-		submissionReqData := &domain.Judge0SubmissionRequest{
-			SourceCode:     req.Code,
-			LanguageID:     languageID,
-			Stdin:          testCase.Input,
-			CPUTimeLimit:   float64(req.TimeLimitInSecond),
-			MemoryLimit:    req.MemoryLimitInMB * 1024,
-			ExpectedOutput: testCase.ExpectedOutput,
-			CallbackURL:    callbackURL,
-		}
-
-		// Make a submission
-		submissionResponseData, err := s.CreateJudge0Submission(submissionReqData)
-		if err != nil {
-			return nil, fmt.Errorf("error while creating the submission: %w", err)
-		}
-
-		// Make Token ---> [SubmissionID, testCaseID] mapping
-		tokenMappingId := uuid.New().String()
-		tokenMapping := &domain.SubmissionTestCaseMapping{
-			UniqueID:           tokenMappingId,
-			Token:              submissionResponseData.Token,
-			SubmissionID:       submissionID,
-			TestCaseID:         testCase.UniqueID,
-			TestOrderPosition:  testCase.OrderPosition,
-			TestCaseInput:      testCase.Input,
-			TestExpectedOutput: testCase.ExpectedOutput,
-			IsHidden:           testCase.IsHidden,
-			Status:             string(domain.VerdictProcessing),
-		}
-		err = s.submissionRepo.CreateTokenMapping(ctx, tokenMapping)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create token mapping: %w", err)
-		}
-
-	}
-
-	// 8. Return response to user
+	// Return response to user
 	return &domain.CreateSubmissionResponse{
 		UniqueID:    submissionID,
 		UserID:      req.UserID,
@@ -467,6 +420,45 @@ func (c *SubmissionService) CreateJudge0Submission(req *domain.Judge0SubmissionR
 	}
 
 	return &submissionResp, nil
+}
+
+func (c *SubmissionService) CreateJudge0BatchSubmission(req *domain.Judge0BatchSubmissionRequest) (domain.Judge0BatchSubmissionResponse, error) {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal batch request: %w", err)
+	}
+
+	httpReq, err := http.NewRequest("POST", c.baseURL+"/submissions/batch?base64_encoded=false", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create batch request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	if c.apiKey != "" {
+		httpReq.Header.Set("X-Auth-Token", c.apiKey)
+	}
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send batch request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read batch response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var batchResp domain.Judge0BatchSubmissionResponse
+	if err := json.Unmarshal(body, &batchResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal batch response: %w", err)
+	}
+
+	return batchResp, nil
 }
 
 func (s *SubmissionService) GetJudge0SubmissionStatus(token string) (*domain.Judge0SubmissionStatus, error) {
