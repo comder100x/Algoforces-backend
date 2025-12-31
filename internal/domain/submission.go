@@ -75,7 +75,7 @@ type Submission struct {
 	QueuedAt    *time.Time `json:"queued_at"`
 
 	//Verdict status update
-	TokenList         []string       `json:"token_list" gorm:"type:text[]"`
+	TokenList         pq.StringArray `json:"token_list" gorm:"type:text[]"`
 	Verdict           string         `json:"verdict" gorm:"type:varchar(50);not null;default:'Pending';index"`
 	Score             int            `json:"score" gorm:"default:0"`
 	TestCasesPassed   int            `json:"test_cases_passed" gorm:"default:0"`
@@ -111,6 +111,7 @@ type CreateSubmissionResponse struct {
 }
 
 type UpdateSubmissionResultRequest struct {
+	TokenList         pq.StringArray `json:"token_list" gorm:"type:text[]"`
 	Verdict           string         `json:"verdict" gorm:"type:varchar(50);not null;default:'Pending';index"`
 	Score             int            `json:"score" gorm:"default:0"`
 	TestCasesPassed   int            `json:"test_cases_passed" gorm:"default:0"`
@@ -128,6 +129,7 @@ type UpdateSubmissionResultResponse struct {
 	UserID            string         `json:"user_id"`
 	ContestID         string         `json:"contest_id"`
 	ProblemID         string         `json:"problem_id"`
+	TokenList         pq.StringArray `json:"token_list" gorm:"type:text[]"`
 	Language          string         `json:"language"`
 	Verdict           string         `json:"verdict"`
 	SubmittedAt       time.Time      `json:"submitted_at"`

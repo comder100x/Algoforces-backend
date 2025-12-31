@@ -206,6 +206,7 @@ func (s *SubmissionService) UpdateSubmissionResult(ctx context.Context, submissi
 		TestCaseResults:   req.TestCaseResults,
 		FailedTestCase:    req.FailedTestCase,
 		JudgeCompletedAt:  req.JudgeCompletedAt,
+		TokenList:         req.TokenList,
 	}
 	err := s.submissionRepo.UpdateSubmissionResult(ctx, submissionID, result)
 	if err != nil {
@@ -230,6 +231,7 @@ func (s *SubmissionService) UpdateSubmissionResult(ctx context.Context, submissi
 		TestCaseResults:   result.TestCaseResults,
 		FailedTestCase:    result.FailedTestCase,
 		JudgeCompletedAt:  result.JudgeCompletedAt,
+		TokenList:         result.TokenList,
 	}, nil
 }
 
@@ -266,16 +268,20 @@ func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *do
 	testResult := s.formatTestResult(testMapping, req, testNum, testMapping.IsHidden)
 	submission.TestCaseResults = append(submission.TestCaseResults, testResult)
 
+	// Append the token to the list before any verdict check
+	submission.TokenList = append(submission.TokenList, testMapping.Token)
+
 	if verdict == domain.VerdictAccepted {
 		submission.TestCasesPassed++
 	} else {
 		submission.FailedTestCase = &testMapping.TestCaseID
-		return s.updateSubmissionError(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults)
+		return s.updateSubmissionError(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults, submission.TokenList)
 	}
 	if submission.TestCasesPassed == submission.TotalTestCases {
-		return s.updateSubmissionSuccess(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults)
+		return s.updateSubmissionSuccess(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults, submission.TokenList)
 	}
 	_, err = s.UpdateSubmissionResult(ctx, submission.UniqueID, &domain.UpdateSubmissionResultRequest{
+		TokenList:         submission.TokenList,
 		Verdict:           string(verdict),
 		TestCaseResults:   submission.TestCaseResults,
 		Score:             submission.TestCasesPassed,
@@ -367,7 +373,7 @@ func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestC
 // updateSubmissionSuccess updates the submission with success result
 func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submissionID string,
 	verdict domain.VerdictStatus, passed, total int,
-	maxTime float64, maxMemory float64, results []string) error {
+	maxTime float64, maxMemory float64, results []string, tokenList []string) error {
 
 	now := time.Now()
 
@@ -380,6 +386,7 @@ func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submiss
 		ExecutionTimeInMS: maxTime,
 		MemoryUsedInKB:    maxMemory,
 		TestCaseResults:   results,
+		TokenList:         tokenList,
 		FailedTestCase:    nil, // No failed test case for success
 		JudgeCompletedAt:  &now,
 	})
@@ -396,7 +403,7 @@ func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submiss
 // updateSubmissionError updates submission with an error status
 func (s *SubmissionService) updateSubmissionError(ctx context.Context, submissionID string,
 	verdict domain.VerdictStatus, passed, total int,
-	maxTime float64, maxMemory float64, testResults []string) error {
+	maxTime float64, maxMemory float64, testResults []string, tokenList []string) error {
 
 	now := time.Now()
 
@@ -409,6 +416,7 @@ func (s *SubmissionService) updateSubmissionError(ctx context.Context, submissio
 		ExecutionTimeInMS: maxTime,
 		MemoryUsedInKB:    maxMemory,
 		TestCaseResults:   testResults,
+		TokenList:         tokenList,
 		FailedTestCase:    nil,
 		JudgeCompletedAt:  &now,
 	})
