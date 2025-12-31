@@ -161,11 +161,13 @@ func main() {
 
 	// Submission routes (protected)
 	submission := r.Group("/api/submission")
+	submission.PUT("/callback", submissionHandler.JudgeSubmissionCallback)
 	submission.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user", "admin"))
 	{
 		submission.POST("/create", submissionHandler.CreateSubmission)
 		submission.GET("/:id", submissionHandler.GetSubmissionDetails)
 		submission.PUT("/update", submissionHandler.UpdateSubmissionStatus)
+
 	}
 
 	// 5. Start the Server

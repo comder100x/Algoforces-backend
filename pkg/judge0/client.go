@@ -33,6 +33,7 @@ type SubmissionRequest struct {
 	MaxProcessesAndFiles                 int     `json:"max_processes_and_or_files,omitempty"`
 	EnablePerProcessAndThreadTimeLimit   bool    `json:"enable_per_process_and_thread_time_limit,omitempty"`
 	EnablePerProcessAndThreadMemoryLimit bool    `json:"enable_per_process_and_thread_memory_limit,omitempty"`
+	CallbackURL                          string  `json:"callback_url,omitempty"`
 }
 
 // SubmissionResponse represents Judge0's response to a submission

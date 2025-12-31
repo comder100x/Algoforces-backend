@@ -246,6 +246,27 @@ definitions:
       unique_id:
         type: string
     type: object
+  domain.JudgeSubmissionCallbackRequest:
+    properties:
+      compile_output:
+        type: string
+      finished_at:
+        type: string
+      memory_in_kb:
+        type: integer
+      message:
+        type: string
+      status:
+        type: integer
+      stderr:
+        type: string
+      stdout:
+        type: string
+      time_in_seconds:
+        type: number
+      token:
+        type: string
+    type: object
   domain.LoginRequest:
     properties:
       email:
@@ -1296,6 +1317,38 @@ paths:
       security:
       - BearerAuth: []
       summary: Update submission status
+      tags:
+      - Submission
+  /api/submission/callback:
+    put:
+      consumes:
+      - application/json
+      description: Judge a submission callback
+      parameters:
+      - description: Judge Submission Callback Request
+        in: body
+        name: judgeSubmissionCallbackRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.JudgeSubmissionCallbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Judge submission callback
       tags:
       - Submission
   /api/submission/create:

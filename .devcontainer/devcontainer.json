@@ -5,7 +5,7 @@
 	"workspaceFolder": "/workspace",
 	"forwardPorts": [
 		8080,
-		5432,
+		5433,
 		6379,
 		2358
 	],

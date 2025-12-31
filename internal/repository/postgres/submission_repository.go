@@ -49,3 +49,31 @@ func (r *submissionRepository) GetAllTestCasesForProblem(ctx context.Context, pr
 func (r *submissionRepository) UpdateSubmissionResult(ctx context.Context, submissionID string, result *domain.Submission) error {
 	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Updates(result).Error
 }
+
+func (r *submissionRepository) CreateTokenMapping(ctx context.Context, mapping *domain.SubmissionTestCaseMapping) error {
+	return r.db.WithContext(ctx).Create(mapping).Error
+}
+
+func (r *submissionRepository) GetMappingByToken(ctx context.Context, token string) (*domain.SubmissionTestCaseMapping, error) {
+	var mapping domain.SubmissionTestCaseMapping
+	err := r.db.WithContext(ctx).Where("token = ?", token).First(&mapping).Error
+	if err != nil {
+		return nil, err
+	}
+	return &mapping, nil
+}
+
+func (r *submissionRepository) UpdateMappingStatus(ctx context.Context, token string, status string) error {
+	return r.db.WithContext(ctx).Model(&domain.SubmissionTestCaseMapping{}).
+		Where("token = ?", token).
+		Update("status", status).Error
+}
+
+func (r *submissionRepository) GetTestCaseByID(ctx context.Context, testCaseID string) (*domain.TestCase, error) {
+	var testCase domain.TestCase
+	err := r.db.WithContext(ctx).Where("unique_id = ?", testCaseID).First(&testCase).Error
+	if err != nil {
+		return nil, err
+	}
+	return &testCase, nil
+}

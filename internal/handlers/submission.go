@@ -115,3 +115,33 @@ func (h *SubmissionHandler) UpdateSubmissionStatus(ctx *gin.Context) {
 
 	utils.SendSuccess(ctx, http.StatusOK, nil, "Submission status updated successfully")
 }
+
+// JudgeSubmissionCallback godoc
+//
+//	@Summary		Judge submission callback
+//	@Description	Judge a submission callback
+//	@Tags			Submission
+//	@Security		BearerAuth
+//	@Accept			json
+//	@Produce		json
+//	@Param			judgeSubmissionCallbackRequest	body		domain.JudgeSubmissionCallbackRequest	true	"Judge Submission Callback Request"
+//	@Success		200								{object}	utils.SuccessResponse
+//	@Failure		400								{object}	utils.ErrorResponse
+//	@Failure		500								{object}	utils.ErrorResponse
+//	@Router			/api/submission/callback [put]
+func (h *SubmissionHandler) JudgeSubmissionCallback(ctx *gin.Context) {
+	var judgeSubmissionCallbackRequest domain.JudgeSubmissionCallbackRequest
+	if err := ctx.ShouldBindJSON(&judgeSubmissionCallbackRequest); err != nil {
+		utils.SendError(ctx, http.StatusBadRequest, err, "Invalid Request Body")
+		return
+	}
+
+	// Call the use case to judge submission callback
+	err := h.submissionUseCase.JudgeSubmissionCallback(ctx.Request.Context(), &judgeSubmissionCallbackRequest)
+	if err != nil {
+		utils.SendError(ctx, http.StatusInternalServerError, err, "Failed to judge submission callback")
+		return
+	}
+
+	utils.SendSuccess(ctx, http.StatusOK, nil, "Submission callback judged successfully")
+}

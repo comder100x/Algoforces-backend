@@ -1032,6 +1032,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/submission/callback": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Judge a submission callback",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Submission"
+                ],
+                "summary": "Judge submission callback",
+                "parameters": [
+                    {
+                        "description": "Judge Submission Callback Request",
+                        "name": "judgeSubmissionCallbackRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.JudgeSubmissionCallbackRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/submission/create": {
             "post": {
                 "security": [
@@ -2026,6 +2077,38 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.JudgeSubmissionCallbackRequest": {
+            "type": "object",
+            "properties": {
+                "compile_output": {
+                    "type": "string"
+                },
+                "finished_at": {
+                    "type": "string"
+                },
+                "memory_in_kb": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "stderr": {
+                    "type": "string"
+                },
+                "stdout": {
+                    "type": "string"
+                },
+                "time_in_seconds": {
+                    "type": "number"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.LoginRequest": {
             "type": "object",
             "required": [
@@ -2535,6 +2618,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "API for Algoforces application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {
