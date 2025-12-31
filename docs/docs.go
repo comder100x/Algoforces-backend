@@ -2077,6 +2077,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.Judge0Status": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
         "domain.JudgeSubmissionCallbackRequest": {
             "type": "object",
             "properties": {
@@ -2093,7 +2104,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "type": "integer"
+                    "$ref": "#/definitions/domain.Judge0Status"
                 },
                 "stderr": {
                     "type": "string"
@@ -2618,8 +2629,6 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "API for Algoforces application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-	LeftDelim:        "{{",
-	RightDelim:       "}}",
 }
 
 func init() {

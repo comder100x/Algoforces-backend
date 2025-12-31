@@ -184,15 +184,15 @@ type Judge0SubmissionStatus struct {
 
 // Status represents Judge0 status codes
 type JudgeSubmissionCallbackRequest struct {
-	Token         string     `json:"token"`
-	Status        int        `json:"status"`
-	TimeInSeconds float64    `json:"time_in_seconds"`
-	MemoryInKB    int        `json:"memory_in_kb"`
-	Stderr        string     `json:"stderr"`
-	Stdout        string     `json:"stdout"`
-	CompileOutput string     `json:"compile_output"`
-	Message       string     `json:"message"`
-	FinishedAt    *time.Time `json:"finished_at,omitempty"`
+	Token         string       `json:"token"`
+	Status        Judge0Status `json:"status"`
+	TimeInSeconds float64      `json:"time_in_seconds"`
+	MemoryInKB    int          `json:"memory_in_kb"`
+	Stderr        string       `json:"stderr"`
+	Stdout        string       `json:"stdout"`
+	CompileOutput string       `json:"compile_output"`
+	Message       string       `json:"message"`
+	FinishedAt    *time.Time   `json:"finished_at,omitempty"`
 }
 
 //-----------------------------------Related to JUDGE0---------------------------------------------------------//

@@ -48,8 +48,7 @@ func GetLanguageID(language string) (int, error) {
 }
 
 func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain.CreateSubmissionRequest) (*domain.CreateSubmissionResponse, error) {
-	//Get all TestCases for the problem
-	//Get all testCases for the problem
+	// Get all testCases for the problem
 	testCases, err := s.submissionRepo.GetAllTestCasesForProblem(ctx, req.ProblemID)
 	if err != nil {
 		return nil, err
@@ -59,15 +58,15 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 	timNow := time.Now()
 	//Update the DB Status
 	submission := &domain.Submission{
-		UniqueID:        submissionID,
-		UserId:          req.UserID,
-		ContestID:       req.ContestID,
-		ProblemID:       req.ProblemID,
-		Code:            req.Code,
-		Language:        req.Language,
-		TestCasesPassed: len(testCases),
-		SubmittedAt:     timNow,
-		Verdict:         string(domain.VerdictPending),
+		UniqueID:       submissionID,
+		UserId:         req.UserID,
+		ContestID:      req.ContestID,
+		ProblemID:      req.ProblemID,
+		Code:           req.Code,
+		Language:       req.Language,
+		TotalTestCases: len(testCases),
+		SubmittedAt:    timNow,
+		Verdict:        string(domain.VerdictPending),
 	}
 	err = s.submissionRepo.CreateNewSubmission(ctx, submission)
 	if err != nil {
@@ -165,6 +164,9 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 			Status:             string(domain.VerdictProcessing),
 		}
 		err = s.submissionRepo.CreateTokenMapping(ctx, tokenMapping)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create token mapping: %w", err)
+		}
 
 	}
 
@@ -243,7 +245,7 @@ func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *do
 	if err != nil {
 		return err
 	}
-	// Upadte the submission results
+	// Update the submission results
 	timeInMS := req.TimeInSeconds * 1000.0
 	memoryInKB := req.MemoryInKB
 	if submission.ExecutionTimeInMS < timeInMS {
@@ -253,7 +255,7 @@ func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *do
 		submission.MemoryUsedInKB = float64(memoryInKB)
 	}
 	// Map Judge0 status to our verdict
-	verdict := s.mapJudge0Status(req.Status)
+	verdict := s.mapJudge0Status(req.Status.ID)
 	// Create comprehensive test result using shared function
 	testNum := testMapping.TestOrderPosition
 	testResult := s.formatTestResult(testMapping, req, testNum, testMapping.IsHidden)
@@ -308,7 +310,7 @@ func (s *SubmissionService) mapJudge0Status(statusID int) domain.VerdictStatus {
 // formatTestResult creates a comprehensive single-line test result for callback requests
 func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestCaseMapping, status *domain.JudgeSubmissionCallbackRequest, testNum int, isHidden bool) string {
 	// Get the verdict for this test
-	verdict := s.mapJudge0Status(status.Status)
+	verdict := s.mapJudge0Status(status.Status.ID)
 
 	// Create comprehensive test result
 	testResult := fmt.Sprintf("Test %d (%s): %s", testNum, testMapping.TestCaseID, verdict)

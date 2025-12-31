@@ -8,7 +8,6 @@ import (
 	"algoforces/internal/repository/postgres"
 	"algoforces/internal/services"
 	"algoforces/pkg/database"
-	"algoforces/pkg/queue"
 	"fmt"
 	"log"
 
@@ -40,18 +39,10 @@ func main() {
 	defer db.Close()
 
 	// Run migrations
-	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.Problem{}, &domain.TestCase{}, &domain.Submission{})
+	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.Problem{}, &domain.TestCase{}, &domain.Submission{}, &domain.SubmissionTestCaseMapping{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
-
-	// Initialiaze queue
-	submissionQueue, err := queue.NewSubmissionQueue(conf.REDIS_URL)
-	if err != nil {
-		log.Fatal("Failed to initialize submission queue:", err)
-	}
-
-	defer submissionQueue.Close()
 
 	// 2. Initialize dependencies
 	userRepo := postgres.NewUserRepository(db.DB)
@@ -68,7 +59,7 @@ func main() {
 	contestRegisterService := services.NewContestRegisterService(contestRegisterRepo, contestRepo, userRepo)
 	problemService := services.NewProblemService(problemRepo, userRepo)
 	testCaseService := services.NewTestCaseService(testCaseRepo)
-	submissionService := services.NewSubmissionService(submissionRepo, submissionQueue)
+	submissionService := services.NewSubmissionService(submissionRepo, conf.JUDGE0_API_KEY, conf.JUDGE0_URL)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService)

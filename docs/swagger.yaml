@@ -246,6 +246,13 @@ definitions:
       unique_id:
         type: string
     type: object
+  domain.Judge0Status:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+    type: object
   domain.JudgeSubmissionCallbackRequest:
     properties:
       compile_output:
@@ -257,7 +264,7 @@ definitions:
       message:
         type: string
       status:
-        type: integer
+        $ref: '#/definitions/domain.Judge0Status'
       stderr:
         type: string
       stdout:

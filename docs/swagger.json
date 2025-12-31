@@ -2071,6 +2071,17 @@
                 }
             }
         },
+        "domain.Judge0Status": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
         "domain.JudgeSubmissionCallbackRequest": {
             "type": "object",
             "properties": {
@@ -2087,7 +2098,7 @@
                     "type": "string"
                 },
                 "status": {
-                    "type": "integer"
+                    "$ref": "#/definitions/domain.Judge0Status"
                 },
                 "stderr": {
                     "type": "string"
