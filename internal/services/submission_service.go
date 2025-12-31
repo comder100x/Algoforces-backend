@@ -4,6 +4,7 @@ import (
 	"algoforces/internal/domain"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -121,7 +123,7 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 			TestOrderPosition:  testCase.OrderPosition,
 			TestCaseInput:      testCase.Input,
 			TestExpectedOutput: testCase.ExpectedOutput,
-			IsHidden:           false,
+			IsHidden:           testCase.IsHidden,
 			Status:             string(domain.VerdictProcessing),
 		}
 		err = s.submissionRepo.CreateTokenMapping(ctx, tokenMapping)
@@ -160,7 +162,7 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 			TestOrderPosition:  testCase.OrderPosition,
 			TestCaseInput:      testCase.Input,
 			TestExpectedOutput: testCase.ExpectedOutput,
-			IsHidden:           true,
+			IsHidden:           testCase.IsHidden,
 			Status:             string(domain.VerdictProcessing),
 		}
 		err = s.submissionRepo.CreateTokenMapping(ctx, tokenMapping)
@@ -272,6 +274,7 @@ func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *do
 	}
 	_, err = s.UpdateSubmissionResult(ctx, submission.UniqueID, &domain.UpdateSubmissionResultRequest{
 		Verdict:           string(verdict),
+		TestCaseResults:   submission.TestCaseResults,
 		Score:             submission.TestCasesPassed,
 		TestCasesPassed:   submission.TestCasesPassed,
 		TotalTestCases:    submission.TotalTestCases,
@@ -307,6 +310,18 @@ func (s *SubmissionService) mapJudge0Status(statusID int) domain.VerdictStatus {
 	}
 }
 
+// decodeBase64 safely decodes a base64 string, returning the original if decoding fails
+func (s *SubmissionService) decodeBase64(encoded string) string {
+	if encoded == "" {
+		return ""
+	}
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return encoded // fallback to original if not valid base64
+	}
+	return strings.TrimSpace(string(decoded))
+}
+
 // formatTestResult creates a comprehensive single-line test result for callback requests
 func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestCaseMapping, status *domain.JudgeSubmissionCallbackRequest, testNum int, isHidden bool) string {
 	// Get the verdict for this test
@@ -317,23 +332,24 @@ func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestC
 
 	// Add execution details for visible tests
 	if !isHidden {
-		testResult += fmt.Sprintf(" | Time: %.2fms", status.TimeInSeconds*1000)
+		testResult += fmt.Sprintf(" | Time: %.3fs", status.TimeInSeconds)
 		testResult += fmt.Sprintf(" | Memory: %dKB", status.MemoryInKB)
 
 		// Add input/output details (only for visible tests)
-		if !testMapping.IsHidden {
-			testResult += fmt.Sprintf(" | Input: %s | Expected: %s", testMapping.TestCaseInput, testMapping.TestExpectedOutput)
-			if status.Stdout != "" {
-				testResult += fmt.Sprintf(" | Got: %s", status.Stdout)
-			}
+		testResult += fmt.Sprintf(" | Input: %s | Expected: %s",
+			strings.TrimSpace(testMapping.TestCaseInput),
+			strings.TrimSpace(testMapping.TestExpectedOutput))
+
+		if status.Stdout != "" {
+			testResult += fmt.Sprintf(" | Got: %s", s.decodeBase64(status.Stdout))
 		}
 
 		// Add error details if any
 		if status.Stderr != "" {
-			testResult += fmt.Sprintf(" | Stderr: %s", status.Stderr)
+			testResult += fmt.Sprintf(" | Stderr: %s", s.decodeBase64(status.Stderr))
 		}
 		if status.CompileOutput != "" {
-			testResult += fmt.Sprintf(" | Compile: %s", status.CompileOutput)
+			testResult += fmt.Sprintf(" | Compile: %s", s.decodeBase64(status.CompileOutput))
 		}
 		if status.Message != "" {
 			testResult += fmt.Sprintf(" | Message: %s", status.Message)

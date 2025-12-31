@@ -56,7 +56,7 @@ type SubmissionTestCaseMapping struct {
 	TestOrderPosition  int       `json:"test_order_position"`
 	TestCaseInput      string    `json:"test_case_input"`
 	TestExpectedOutput string    `json:"test_expected_output"`
-	IsHidden           bool      `json:"is_hidden" gorm:"not null;default:true"`
+	IsHidden           bool      `json:"is_hidden" gorm:"not null"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }
