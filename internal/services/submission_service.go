@@ -188,6 +188,7 @@ func (s *SubmissionService) UpdateSubmissionResult(ctx context.Context, submissi
 	}, nil
 }
 
+// JudgeSubmissionCallback is the callback function for the submission
 func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *domain.JudgeSubmissionCallbackRequest) error {
 
 	// Get the test case by token
@@ -214,12 +215,14 @@ func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *do
 	if submission.MemoryUsedInKB < float64(memoryInKB) {
 		submission.MemoryUsedInKB = float64(memoryInKB)
 	}
+
 	// Map Judge0 status to our verdict
 	verdict := s.mapJudge0Status(req.Status.ID)
 	// Create comprehensive test result using shared function
 	testNum := testMapping.TestOrderPosition
 	testResult := s.formatTestResult(testMapping, req, testNum, testMapping.IsHidden)
-	submission.TestCaseResults = append(submission.TestCaseResults, testResult)
+	testResultJSON, _ := json.Marshal(testResult)
+	submission.TestCaseResults = append(submission.TestCaseResults, string(testResultJSON))
 
 	// Append the token to the list before any verdict check
 	submission.TokenList = append(submission.TokenList, testMapping.Token)
@@ -284,43 +287,23 @@ func (s *SubmissionService) decodeBase64(encoded string) string {
 	return strings.TrimSpace(string(decoded))
 }
 
-// formatTestResult creates a comprehensive single-line test result for callback requests
-func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestCaseMapping, status *domain.JudgeSubmissionCallbackRequest, testNum int, isHidden bool) string {
-	// Get the verdict for this test
-	verdict := s.mapJudge0Status(status.Status.ID)
+// formatTestResult creates a comprehensive test result for callback requests
+func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestCaseMapping, status *domain.JudgeSubmissionCallbackRequest, testNum int, isHidden bool) *domain.Judge0FormattedResult {
+	// Parse time string from Judge0 (e.g., "0.002")
+	timeInSeconds, _ := strconv.ParseFloat(status.Time, 64)
+	// Convert to milliseconds
+	timeInMS := timeInSeconds * 1000
 
-	// Create comprehensive test result
-	testResult := fmt.Sprintf("Test %d (%s): %s", testNum, testMapping.TestCaseID, verdict)
-
-	// Add execution details for visible tests
-	if !isHidden {
-		// Parse time string from Judge0 (e.g., "0.002")
-		timeInSeconds, _ := strconv.ParseFloat(status.Time, 64)
-		testResult += fmt.Sprintf(" | Time: %.3fs", timeInSeconds)
-		testResult += fmt.Sprintf(" | Memory: %dKB", status.Memory)
-
-		// Add input/output details (only for visible tests)
-		testResult += fmt.Sprintf(" | Input: %s | Expected: %s",
-			strings.TrimSpace(testMapping.TestCaseInput),
-			strings.TrimSpace(testMapping.TestExpectedOutput))
-
-		if status.Stdout != "" {
-			testResult += fmt.Sprintf(" | Got: %s", s.decodeBase64(status.Stdout))
-		}
-
-		// Add error details if any
-		if status.Stderr != "" {
-			testResult += fmt.Sprintf(" | Stderr: %s", s.decodeBase64(status.Stderr))
-		}
-		if status.CompileOutput != "" {
-			testResult += fmt.Sprintf(" | Compile: %s", s.decodeBase64(status.CompileOutput))
-		}
-		if status.Message != "" {
-			testResult += fmt.Sprintf(" | Message: %s", status.Message)
-		}
+	return &domain.Judge0FormattedResult{
+		TestExpectedOutput: strings.TrimSpace(testMapping.TestExpectedOutput),
+		IsHidden:           isHidden,
+		ExecutionTimeMS:    timeInMS,
+		MemoryUsedKB:       status.Memory,
+		Stdout:             s.decodeBase64(status.Stdout),
+		Stderr:             s.decodeBase64(status.Stderr),
+		CompileOutput:      s.decodeBase64(status.CompileOutput),
+		Message:            status.Message,
 	}
-
-	return testResult
 }
 
 // updateSubmissionSuccess updates the submission with success result

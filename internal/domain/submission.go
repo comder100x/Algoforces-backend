@@ -204,6 +204,17 @@ type JudgeSubmissionCallbackRequest struct {
 	FinishedAt    *time.Time   `json:"finished_at,omitempty"`
 }
 
+type Judge0FormattedResult struct {
+	TestExpectedOutput string  `json:"test_expected_output"`
+	IsHidden           bool    `json:"is_hidden" gorm:"not null"`
+	ExecutionTimeMS    float64 `json:"execution_time_ms"`
+	MemoryUsedKB       int     `json:"memory_used_kb"`
+	Stdout             string  `json:"stdout" gorm:"type:text"`
+	Stderr             string  `json:"stderr" gorm:"type:text"`
+	CompileOutput      string  `json:"compile_output" gorm:"type:text"`
+	Message            string  `json:"message" gorm:"type:text"`
+}
+
 //-----------------------------------Related to JUDGE0---------------------------------------------------------//
 
 type SubmissionRepository interface {
