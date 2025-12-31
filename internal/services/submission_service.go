@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -248,8 +249,10 @@ func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *do
 		return err
 	}
 	// Update the submission results
-	timeInMS := req.TimeInSeconds * 1000.0
-	memoryInKB := req.MemoryInKB
+	// Parse time string from Judge0 (e.g., "0.002")
+	timeInSeconds, _ := strconv.ParseFloat(req.Time, 64)
+	timeInMS := timeInSeconds * 1000.0
+	memoryInKB := req.Memory
 	if submission.ExecutionTimeInMS < timeInMS {
 		submission.ExecutionTimeInMS = timeInMS
 	}
@@ -332,8 +335,10 @@ func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestC
 
 	// Add execution details for visible tests
 	if !isHidden {
-		testResult += fmt.Sprintf(" | Time: %.3fs", status.TimeInSeconds)
-		testResult += fmt.Sprintf(" | Memory: %dKB", status.MemoryInKB)
+		// Parse time string from Judge0 (e.g., "0.002")
+		timeInSeconds, _ := strconv.ParseFloat(status.Time, 64)
+		testResult += fmt.Sprintf(" | Time: %.3fs", timeInSeconds)
+		testResult += fmt.Sprintf(" | Memory: %dKB", status.Memory)
 
 		// Add input/output details (only for visible tests)
 		testResult += fmt.Sprintf(" | Input: %s | Expected: %s",

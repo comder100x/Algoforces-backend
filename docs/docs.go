@@ -2097,7 +2097,8 @@ const docTemplate = `{
                 "finished_at": {
                     "type": "string"
                 },
-                "memory_in_kb": {
+                "memory": {
+                    "description": "Memory in KB",
                     "type": "integer"
                 },
                 "message": {
@@ -2112,8 +2113,9 @@ const docTemplate = `{
                 "stdout": {
                     "type": "string"
                 },
-                "time_in_seconds": {
-                    "type": "number"
+                "time": {
+                    "description": "Judge0 sends time as string (e.g., \"0.002\")",
+                    "type": "string"
                 },
                 "token": {
                     "type": "string"

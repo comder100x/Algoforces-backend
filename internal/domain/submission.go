@@ -186,8 +186,8 @@ type Judge0SubmissionStatus struct {
 type JudgeSubmissionCallbackRequest struct {
 	Token         string       `json:"token"`
 	Status        Judge0Status `json:"status"`
-	TimeInSeconds float64      `json:"time_in_seconds"`
-	MemoryInKB    int          `json:"memory_in_kb"`
+	Time          string       `json:"time"`   // Judge0 sends time as string (e.g., "0.002")
+	Memory        int          `json:"memory"` // Memory in KB
 	Stderr        string       `json:"stderr"`
 	Stdout        string       `json:"stdout"`
 	CompileOutput string       `json:"compile_output"`
