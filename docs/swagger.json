@@ -364,6 +364,295 @@
                 }
             }
         },
+        "/api/contest-problem/bulk": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add multiple problems to a contest in bulk with order positions and max points (admin or problem-setter only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest Problems"
+                ],
+                "summary": "Add multiple problems to a contest",
+                "parameters": [
+                    {
+                        "description": "Bulk Create Contest Problems Request",
+                        "name": "bulkCreateRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.BulkCreateContestProblemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.BulkCreateContestProblemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest-problem/contest/{contestId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all problems associated with a specific contest",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest Problems"
+                ],
+                "summary": "Get all problems for a contest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.GetContestProblemsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest-problem/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a problem to a contest with order position and max points (admin or problem-setter only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest Problems"
+                ],
+                "summary": "Add a problem to a contest",
+                "parameters": [
+                    {
+                        "description": "Create Contest Problem Request",
+                        "name": "createContestProblemRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.CreateContestProblemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.CreateContestProblemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest-problem/update": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing contest problem (admin or problem-setter only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest Problems"
+                ],
+                "summary": "Update a contest problem",
+                "parameters": [
+                    {
+                        "description": "Update Contest Problem Request",
+                        "name": "updateContestProblemRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.UpdateContestProblemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.UpdateContestProblemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest-problem/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get details of a specific contest problem by its unique ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest Problems"
+                ],
+                "summary": "Get a contest problem by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contest Problem ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.GetContestProblemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a problem from a contest (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest Problems"
+                ],
+                "summary": "Delete a contest problem",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contest Problem ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.DeleteContestProblemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/contest/create": {
             "post": {
                 "security": [
@@ -1763,6 +2052,66 @@
                 }
             }
         },
+        "domain.BulkContestProblemItem": {
+            "type": "object",
+            "required": [
+                "max_points",
+                "order_position",
+                "problem_id"
+            ],
+            "properties": {
+                "max_points": {
+                    "type": "integer"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "problem_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.BulkCreateContestProblemRequest": {
+            "type": "object",
+            "required": [
+                "contest_id",
+                "problems"
+            ],
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                },
+                "problems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.BulkContestProblemItem"
+                    }
+                }
+            }
+        },
+        "domain.BulkCreateContestProblemResponse": {
+            "type": "object",
+            "properties": {
+                "created_problems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.CreateContestProblemResponse"
+                    }
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "failed_count": {
+                    "type": "integer"
+                },
+                "success_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "domain.BulkProblemCreationRequest": {
             "type": "object",
             "required": [
@@ -1826,6 +2175,40 @@
                 }
             }
         },
+        "domain.ContestProblemDetail": {
+            "type": "object",
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "max_points": {
+                    "type": "integer"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "problem": {
+                    "description": "Optional: include problem details",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.Problem"
+                        }
+                    ]
+                },
+                "problem_id": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.ContestRegisterRequest": {
             "type": "object",
             "required": [
@@ -1864,6 +2247,55 @@
             ],
             "properties": {
                 "contest_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CreateContestProblemRequest": {
+            "type": "object",
+            "required": [
+                "contest_id",
+                "max_points",
+                "order_position",
+                "problem_id"
+            ],
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                },
+                "max_points": {
+                    "type": "integer"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "problem_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CreateContestProblemResponse": {
+            "type": "object",
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "max_points": {
+                    "type": "integer"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "problem_id": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -2071,6 +2503,51 @@
                 }
             }
         },
+        "domain.DeleteContestProblemResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.GetContestProblemResponse": {
+            "type": "object",
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "max_points": {
+                    "type": "integer"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "problem_id": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.GetContestProblemsResponse": {
+            "type": "object",
+            "properties": {
+                "problems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ContestProblemDetail"
+                    }
+                }
+            }
+        },
         "domain.Judge0Status": {
             "type": "object",
             "properties": {
@@ -2127,6 +2604,39 @@
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Problem": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "description": "references User(Id)",
+                    "type": "string"
+                },
+                "difficulty": {
+                    "type": "string"
+                },
+                "memory_limit_in_mb": {
+                    "type": "integer"
+                },
+                "statement": {
+                    "type": "string"
+                },
+                "time_limit_in_seconds": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -2338,6 +2848,55 @@
                     "type": "string"
                 },
                 "unique_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.UpdateContestProblemRequest": {
+            "type": "object",
+            "required": [
+                "unique_id"
+            ],
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                },
+                "max_points": {
+                    "type": "integer"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "problem_id": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.UpdateContestProblemResponse": {
+            "type": "object",
+            "properties": {
+                "contest_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "max_points": {
+                    "type": "integer"
+                },
+                "order_position": {
+                    "type": "integer"
+                },
+                "problem_id": {
+                    "type": "string"
+                },
+                "unique_id": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }

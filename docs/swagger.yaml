@@ -39,6 +39,46 @@ definitions:
         - $ref: '#/definitions/domain.User'
         description: Returns user info (without password)
     type: object
+  domain.BulkContestProblemItem:
+    properties:
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+    required:
+    - max_points
+    - order_position
+    - problem_id
+    type: object
+  domain.BulkCreateContestProblemRequest:
+    properties:
+      contest_id:
+        type: string
+      problems:
+        items:
+          $ref: '#/definitions/domain.BulkContestProblemItem'
+        type: array
+    required:
+    - contest_id
+    - problems
+    type: object
+  domain.BulkCreateContestProblemResponse:
+    properties:
+      created_problems:
+        items:
+          $ref: '#/definitions/domain.CreateContestProblemResponse'
+        type: array
+      errors:
+        items:
+          type: string
+        type: array
+      failed_count:
+        type: integer
+      success_count:
+        type: integer
+    type: object
   domain.BulkProblemCreationRequest:
     properties:
       problems:
@@ -80,6 +120,27 @@ definitions:
           $ref: '#/definitions/domain.CreateTestCaseResponse'
         type: array
     type: object
+  domain.ContestProblemDetail:
+    properties:
+      contest_id:
+        type: string
+      created_at:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem:
+        allOf:
+        - $ref: '#/definitions/domain.Problem'
+        description: 'Optional: include problem details'
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
   domain.ContestRegisterRequest:
     properties:
       contest_id:
@@ -106,6 +167,39 @@ definitions:
         type: string
     required:
     - contest_id
+    type: object
+  domain.CreateContestProblemRequest:
+    properties:
+      contest_id:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+    required:
+    - contest_id
+    - max_points
+    - order_position
+    - problem_id
+    type: object
+  domain.CreateContestProblemResponse:
+    properties:
+      contest_id:
+        type: string
+      created_at:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
     type: object
   domain.CreateContestRequest:
     properties:
@@ -246,6 +340,35 @@ definitions:
       unique_id:
         type: string
     type: object
+  domain.DeleteContestProblemResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  domain.GetContestProblemResponse:
+    properties:
+      contest_id:
+        type: string
+      created_at:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  domain.GetContestProblemsResponse:
+    properties:
+      problems:
+        items:
+          $ref: '#/definitions/domain.ContestProblemDetail'
+        type: array
+    type: object
   domain.Judge0Status:
     properties:
       description:
@@ -285,6 +408,28 @@ definitions:
     required:
     - email
     - password
+    type: object
+  domain.Problem:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        description: references User(Id)
+        type: string
+      difficulty:
+        type: string
+      memory_limit_in_mb:
+        type: integer
+      statement:
+        type: string
+      time_limit_in_seconds:
+        type: integer
+      title:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
     type: object
   domain.ProblemCreationRequest:
     properties:
@@ -429,6 +574,38 @@ definitions:
         description: references Problem(UniqueID)
         type: string
       unique_id:
+        type: string
+    type: object
+  domain.UpdateContestProblemRequest:
+    properties:
+      contest_id:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+    required:
+    - unique_id
+    type: object
+  domain.UpdateContestProblemResponse:
+    properties:
+      contest_id:
+        type: string
+      created_at:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
         type: string
     type: object
   domain.UpdateContestRequest:
@@ -837,6 +1014,190 @@ paths:
       summary: User Signup
       tags:
       - Auth
+  /api/contest-problem/{id}:
+    delete:
+      description: Remove a problem from a contest (admin only)
+      parameters:
+      - description: Contest Problem ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.DeleteContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a contest problem
+      tags:
+      - Contest Problems
+    get:
+      description: Get details of a specific contest problem by its unique ID
+      parameters:
+      - description: Contest Problem ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.GetContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a contest problem by ID
+      tags:
+      - Contest Problems
+  /api/contest-problem/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Add multiple problems to a contest in bulk with order positions
+        and max points (admin or problem-setter only)
+      parameters:
+      - description: Bulk Create Contest Problems Request
+        in: body
+        name: bulkCreateRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.BulkCreateContestProblemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.BulkCreateContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add multiple problems to a contest
+      tags:
+      - Contest Problems
+  /api/contest-problem/contest/{contestId}:
+    get:
+      description: Get all problems associated with a specific contest
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.GetContestProblemsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all problems for a contest
+      tags:
+      - Contest Problems
+  /api/contest-problem/create:
+    post:
+      consumes:
+      - application/json
+      description: Add a problem to a contest with order position and max points (admin
+        or problem-setter only)
+      parameters:
+      - description: Create Contest Problem Request
+        in: body
+        name: createContestProblemRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateContestProblemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.CreateContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a problem to a contest
+      tags:
+      - Contest Problems
+  /api/contest-problem/update:
+    put:
+      consumes:
+      - application/json
+      description: Update an existing contest problem (admin or problem-setter only)
+      parameters:
+      - description: Update Contest Problem Request
+        in: body
+        name: updateContestProblemRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateContestProblemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UpdateContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a contest problem
+      tags:
+      - Contest Problems
   /api/contest/{id}:
     delete:
       description: Delete a contest by ID (admin only)

@@ -39,7 +39,7 @@ func main() {
 	defer db.Close()
 
 	// Run migrations
-	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.Problem{}, &domain.TestCase{}, &domain.Submission{}, &domain.SubmissionTestCaseMapping{})
+	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.ContestProblems{}, &domain.Problem{}, &domain.TestCase{}, &domain.Submission{}, &domain.SubmissionTestCaseMapping{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
@@ -49,6 +49,7 @@ func main() {
 	adminRepo := postgres.NewAdminRepository(db.DB)
 	contestRepo := postgres.NewContestRepository(db.DB)
 	contestRegisterRepo := postgres.NewContestRegisterRepository(db.DB)
+	contestProblemsRepo := postgres.NewContestProblemsRepository(db.DB)
 	problemRepo := postgres.NewProblemRepository(db.DB)
 	testCaseRepo := postgres.NewTestCaseRepository(db.DB)
 	submissionRepo := postgres.NewSubmissionRepository(db.DB)
@@ -57,6 +58,7 @@ func main() {
 	adminService := services.NewAdminService(adminRepo)
 	contestService := services.NewContestService(contestRepo, userRepo)
 	contestRegisterService := services.NewContestRegisterService(contestRegisterRepo, contestRepo, userRepo)
+	contestProblemsService := services.NewContestProblemsService(contestProblemsRepo, contestRepo, problemRepo)
 	problemService := services.NewProblemService(problemRepo, userRepo)
 	testCaseService := services.NewTestCaseService(testCaseRepo)
 	submissionService := services.NewSubmissionService(submissionRepo, conf.JUDGE0_API_KEY, conf.JUDGE0_URL)
@@ -66,6 +68,7 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(adminService)
 	contestHandler := handlers.NewContestHandler(contestService)
 	contestRegisterHandler := handlers.NewContestRegisterHandler(contestRegisterService)
+	contestProblemsHandler := handlers.NewContestProblemsHandler(contestProblemsService)
 	problemHandler := handlers.NewProblemHandler(problemService)
 	testCaseHandler := handlers.NewTestCaseHandler(testCaseService)
 	submissionHandler := handlers.NewSubmissionHandler(submissionService)
@@ -124,6 +127,18 @@ func main() {
 		contestRegistration.POST("/register", contestRegisterHandler.RegisterContest)
 		contestRegistration.POST("/unregister", contestRegisterHandler.UnregisterContest)
 		contestRegistration.GET("/registrations", contestRegisterHandler.GetAllRegistrations)
+	}
+
+	// Contest problems routes (protected)
+	contestProblems := r.Group("/api/contest-problem")
+	contestProblems.Use(middleware.AuthMiddleware())
+	{
+		contestProblems.POST("/create", middleware.RoleMiddleware("admin", "problem_setter"), contestProblemsHandler.CreateContestProblem)
+		contestProblems.POST("/bulk", middleware.RoleMiddleware("admin", "problem_setter"), contestProblemsHandler.BulkCreateContestProblems)
+		contestProblems.GET("/:id", contestProblemsHandler.GetContestProblem)
+		contestProblems.GET("/contest/:contestId", contestProblemsHandler.GetContestProblems)
+		contestProblems.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), contestProblemsHandler.UpdateContestProblem)
+		contestProblems.DELETE("/:id", middleware.RoleMiddleware("admin"), contestProblemsHandler.DeleteContestProblem)
 	}
 
 	// Problem routes (protected)
