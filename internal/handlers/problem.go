@@ -5,6 +5,7 @@ import (
 	"algoforces/internal/middleware"
 	"algoforces/internal/utils"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -229,11 +230,18 @@ func (h *ProblemHandler) DeleteProblem(c *gin.Context) {
 //	@Tags			Problem
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Success		200	{array}		domain.ProblemCreationResponse
+//	@Success		200	{array}		domain.ProblemListResponse
 //	@Failure		500	{object}	utils.ErrorResponse
-//	@Router			/api/problem/all [get]
+//	@Router			/api/problem/all?page=:pageOffset [get]
 func (h *ProblemHandler) GetAllProblems(c *gin.Context) {
-	problems, err := h.problemUseCase.GetAllProblems(c.Request.Context())
+	log.Info().Msg("Getting all problems for page offset: " + c.Param("pageOffset"))
+	pageOffset, err := strconv.Atoi(c.Param("pageOffset"))
+	if err != nil {
+		utils.SendError(c, http.StatusBadRequest, err, "Invalid page offset")
+		return
+	}
+
+	problems, err := h.problemUseCase.GetAllProblems(c.Request.Context(), pageOffset)
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get problems")
 		return

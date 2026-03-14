@@ -1,9 +1,11 @@
 package services
 
 import (
+	"algoforces/internal/conf"
 	"algoforces/internal/domain"
 	"context"
 	"errors"
+	"strconv"
 
 	"github.com/google/uuid"
 )
@@ -225,15 +227,22 @@ func (s *problemService) DeleteProblem(ctx context.Context, id string, userID st
 	return s.problemRepo.DeleteProblem(ctx, id)
 }
 
-func (s *problemService) GetAllProblems(ctx context.Context) ([]domain.ProblemCreationResponse, error) {
-	problems, err := s.problemRepo.GetAllProblems(ctx)
+func (s *problemService) GetAllProblems(ctx context.Context, pageOffset int) (*domain.ProblemListResponse, error) {
+	// Get the limit from the configuration
+	limit, err := strconv.Atoi(conf.PAGINATION_LIMIT)
+	if err != nil {
+		return nil, errors.New("invalid pagination limit")
+	}
+
+	allProblemListResponse, err := s.problemRepo.GetAllProblems(ctx, pageOffset, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	var problemResponses []domain.ProblemCreationResponse
-	for _, problem := range problems {
-		problemResponses = append(problemResponses, domain.ProblemCreationResponse{
+	// Convert problems to response format
+	problemResponses := make([]domain.ProblemCreationResponse, len(allProblemListResponse.Problems))
+	for i, problem := range allProblemListResponse.Problems {
+		problemResponses[i] = domain.ProblemCreationResponse{
 			UniqueID:           problem.UniqueID,
 			Title:              problem.Title,
 			Statement:          problem.Statement,
@@ -243,8 +252,24 @@ func (s *problemService) GetAllProblems(ctx context.Context) ([]domain.ProblemCr
 			CreatedBy:          problem.CreatedBy,
 			CreatedAt:          problem.CreatedAt,
 			UpdatedAt:          problem.UpdatedAt,
-		})
+		}
 	}
 
-	return problemResponses, nil
+	// Calculate total pages properly (ceiling division)
+	totalPages := allProblemListResponse.Total / limit
+	if allProblemListResponse.Total%limit != 0 {
+		totalPages++
+	}
+
+	response := &domain.ProblemListResponse{
+		Problems:    problemResponses,
+		Total:       allProblemListResponse.Total,
+		Page:        pageOffset,
+		Limit:       limit,
+		TotalPages:  totalPages,
+		HasNext:     (pageOffset+1)*limit < allProblemListResponse.Total,
+		HasPrevious: pageOffset > 0,
+	}
+
+	return response, nil
 }
