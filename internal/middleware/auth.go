@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // AuthMiddleware validates JWT token and sets user context
@@ -14,6 +15,7 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			log.Warn().Str("path", c.Request.URL.Path).Str("method", c.Request.Method).Msg("Missing authorization header")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "Authorization header required",
 				"message": "Please provide a valid Bearer token",
@@ -31,6 +33,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			// Token provided without Bearer prefix
 			token = parts[0]
 		} else {
+			log.Warn().Str("path", c.Request.URL.Path).Str("method", c.Request.Method).Msg("Invalid authorization header format")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "Invalid authorization format",
 				"message": "Authorization header must be a token or in format: Bearer <token>",
@@ -41,6 +44,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		claims, err := utils.ValidateToken(token)
 		if err != nil {
+			log.Warn().Str("path", c.Request.URL.Path).Str("method", c.Request.Method).Err(err).Msg("Invalid or expired token")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "Invalid or expired token",
 				"message": "Please login again",

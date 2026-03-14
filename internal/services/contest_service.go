@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type contestService struct {
@@ -23,6 +24,7 @@ func NewContestService(contestRepo domain.ContestRepository, userRepo domain.Use
 func (s *contestService) CreateContest(ctx context.Context, req *domain.CreateContestRequest, userId string) (*domain.CreateContestResponse, error) {
 	contestList, err := s.contestRepo.CheckContestInTimeWindow(ctx, req.StartTime, req.EndTime)
 	if err != nil {
+		log.Error().Err(err).Str("user_id", userId).Str("contest_name", req.Name).Msg("Failed to check contest time window")
 		return nil, err
 	}
 
@@ -34,9 +36,11 @@ func (s *contestService) CreateContest(ctx context.Context, req *domain.CreateCo
 	for _, psUserId := range req.ProblemSetters {
 		user, err := s.userRepo.GetByID(ctx, psUserId)
 		if err != nil {
+			log.Error().Err(err).Str("user_id", userId).Str("problem_setter_id", psUserId).Msg("Failed to get problem setter user")
 			return nil, err
 		}
 		if user.Role != "problem_setter" && user.Role != "admin" {
+			log.Warn().Str("user_id", userId).Str("problem_setter_id", psUserId).Str("role", user.Role).Msg("Unauthorized user attempted to be added as problem setter")
 			return nil, errors.New("user " + psUserId + " is not authorized as problem setter")
 		}
 	}
@@ -56,6 +60,7 @@ func (s *contestService) CreateContest(ctx context.Context, req *domain.CreateCo
 
 	err = s.contestRepo.CreateContest(ctx, contest)
 	if err != nil {
+		log.Error().Err(err).Str("user_id", userId).Str("contest_name", req.Name).Msg("Failed to create contest in database")
 		return nil, err
 	}
 
