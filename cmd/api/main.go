@@ -7,13 +7,13 @@ import (
 	"algoforces/internal/middleware"
 	"algoforces/internal/repository/postgres"
 	"algoforces/internal/services"
+	"algoforces/internal/utils"
 	"algoforces/pkg/database"
-	"fmt"
-	"log"
 
 	_ "algoforces/docs" // Import generated docs for Swagger
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -31,19 +31,21 @@ import (
 //	@description				Enter your token only (without Bearer prefix)
 
 func main() {
-	// 1. Initialize database connection
+	// 1. Initialize logger first (so all output is consistent)
+	utils.Init(conf.ENV)
+
 	db, err := database.NewPostgresConnection()
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
 	defer db.Close()
 
-	// Run migrations
 	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.ContestProblems{}, &domain.Problem{}, &domain.TestCase{}, &domain.Submission{}, &domain.SubmissionTestCaseMapping{})
 	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
+		log.Fatal().Err(err).Msg("Failed to migrate database")
 	}
 
+	log.Info().Msg("Starting Algoforces API on :8080")
 	// 2. Initialize dependencies
 	userRepo := postgres.NewUserRepository(db.DB)
 	adminRepo := postgres.NewAdminRepository(db.DB)
@@ -177,9 +179,8 @@ func main() {
 	}
 
 	// 5. Start the Server
-	fmt.Println("Starting Algoforces API on :8080...")
 	err = r.Run(":8080")
 	if err != nil {
-		log.Fatal("Failed to start server:", err)
+		log.Fatal().Err(err).Msg("Failed to start server")
 	}
 }
