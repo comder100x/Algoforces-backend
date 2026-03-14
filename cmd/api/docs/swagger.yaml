@@ -1,0 +1,15 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: API for Algoforces application
+  title: Algoforces API
+  version: "1.0"
+paths: {}
+securityDefinitions:
+  BearerAuth:
+    description: Enter your token only (without Bearer prefix)
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

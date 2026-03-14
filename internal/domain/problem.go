@@ -48,7 +48,7 @@ type ProblemListResponse struct {
 }
 
 type AllProblemListResponse struct {
-	Problems []ProblemCreationResponse `json:"problems"`
+	Problems []Problem `json:"problems"`
 	Total    int                       `json:"total"`
 }
 

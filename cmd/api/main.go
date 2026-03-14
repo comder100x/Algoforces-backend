@@ -149,7 +149,7 @@ func main() {
 	{
 		problem.POST("/create", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.CreateProblem)
 		problem.POST("/bulk", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.CreateProblemsInBulk)
-		problem.GET("/all?page=:pageOffset", problemHandler.GetAllProblems)
+		problem.GET("/all", problemHandler.GetAllProblems)
 		problem.GET("/:id", problemHandler.GetProblemByID)
 		problem.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.UpdateProblem)
 		problem.DELETE("/:id", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.DeleteProblem)

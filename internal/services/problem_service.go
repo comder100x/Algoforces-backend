@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type problemService struct {
@@ -231,7 +232,8 @@ func (s *problemService) GetAllProblems(ctx context.Context, pageOffset int) (*d
 	// Get the limit from the configuration
 	limit, err := strconv.Atoi(conf.PAGINATION_LIMIT)
 	if err != nil {
-		return nil, errors.New("invalid pagination limit")
+		log.Error().Msg("Error getting pagination limit and using default value of 10: " + err.Error())
+		limit = 10
 	}
 
 	allProblemListResponse, err := s.problemRepo.GetAllProblems(ctx, pageOffset, limit)
@@ -239,6 +241,7 @@ func (s *problemService) GetAllProblems(ctx context.Context, pageOffset int) (*d
 		return nil, err
 	}
 
+	log.Info().Msg("Total problems: " + strconv.Itoa(allProblemListResponse.Total))
 	// Convert problems to response format
 	problemResponses := make([]domain.ProblemCreationResponse, len(allProblemListResponse.Problems))
 	for i, problem := range allProblemListResponse.Problems {
@@ -270,6 +273,6 @@ func (s *problemService) GetAllProblems(ctx context.Context, pageOffset int) (*d
 		HasNext:     (pageOffset+1)*limit < allProblemListResponse.Total,
 		HasPrevious: pageOffset > 0,
 	}
-
+	log.Info().Msg("Successfully retrieved all problems")
 	return response, nil
 }

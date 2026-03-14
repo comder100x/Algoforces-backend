@@ -232,11 +232,11 @@ func (h *ProblemHandler) DeleteProblem(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Success		200	{array}		domain.ProblemListResponse
 //	@Failure		500	{object}	utils.ErrorResponse
-//	@Router			/api/problem/all?page=:pageOffset [get]
+//	@Router			/api/problem/all [get]
 func (h *ProblemHandler) GetAllProblems(c *gin.Context) {
-	log.Info().Msg("Getting all problems for page offset: " + c.Param("pageOffset"))
-	pageOffset, err := strconv.Atoi(c.Param("pageOffset"))
-	if err != nil {
+	pageOffsetStr := c.DefaultQuery("page", "0")
+	pageOffset, err := strconv.Atoi(pageOffsetStr)
+	if err != nil || pageOffset < 0 {
 		utils.SendError(c, http.StatusBadRequest, err, "Invalid page offset")
 		return
 	}
