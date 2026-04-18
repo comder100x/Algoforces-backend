@@ -1,7 +1,7 @@
 # ===========================================
 # Development Stage - for devcontainer
 # ===========================================
-FROM golang:1.23-bookworm AS development
+FROM golang:1.23-bullseye AS development
 
 WORKDIR /workspace
 
