@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type SubmissionService struct {
@@ -330,8 +330,12 @@ func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submiss
 		return fmt.Errorf("failed to update submission result: %w", err)
 	}
 
-	log.Printf("Submission %s completed with verdict: %s (%d/%d tests passed)",
-		submissionID, verdict, passed, total)
+	log.Info().
+		Str("submission_id", submissionID).
+		Str("verdict", string(verdict)).
+		Int("passed", passed).
+		Int("total", total).
+		Msg("submission completed")
 
 	return nil
 }
@@ -357,12 +361,16 @@ func (s *SubmissionService) updateSubmissionError(ctx context.Context, submissio
 		JudgeCompletedAt:  &now,
 	})
 	if err != nil {
-		log.Printf("Failed to update error status: %v", err)
+		log.Error().Err(err).Str("submission_id", submissionID).Msg("failed to update error status")
 		return fmt.Errorf("failed to update submission result: %w", err)
 	}
 
-	log.Printf("Submission %s completed with verdict: %s (%d/%d tests passed)",
-		submissionID, verdict, passed, total)
+	log.Info().
+		Str("submission_id", submissionID).
+		Str("verdict", string(verdict)).
+		Int("passed", passed).
+		Int("total", total).
+		Msg("submission completed")
 
 	return nil
 }

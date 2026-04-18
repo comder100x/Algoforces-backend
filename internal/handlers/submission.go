@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 type SubmissionHandler struct {
@@ -34,6 +35,7 @@ func NewSubmissionHandler(submissionUseCase domain.SubmissionUseCase) *Submissio
 func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 	var createSubmissionRequest domain.CreateSubmissionRequest
 	if err := ctx.ShouldBindJSON(&createSubmissionRequest); err != nil {
+		log.Error().Err(err).Msg("Invalid submission request body")
 		utils.SendError(ctx, http.StatusBadRequest, err, "Invalid Request Body")
 		return
 	}
@@ -41,10 +43,12 @@ func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 	// Call the use case to create a new submission
 	createSubmissionResponse, err := h.submissionUseCase.CreateNewSubmission(ctx.Request.Context(), &createSubmissionRequest)
 	if err != nil {
+		log.Error().Err(err).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Failed to create submission")
 		utils.SendError(ctx, http.StatusInternalServerError, err, "Failed to create submission")
 		return
 	}
 
+	log.Info().Str("submission_id", createSubmissionResponse.UniqueID).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Submission created successfully")
 	utils.SendSuccess(ctx, http.StatusCreated, createSubmissionResponse, "Submission created successfully")
 }
 
@@ -130,6 +134,7 @@ func (h *SubmissionHandler) UpdateSubmissionStatus(ctx *gin.Context) {
 //	@Failure		500								{object}	utils.ErrorResponse
 //	@Router			/api/submission/callback [put]
 func (h *SubmissionHandler) JudgeSubmissionCallback(ctx *gin.Context) {
+	log.Info().Msg("Received submission callback")
 	var judgeSubmissionCallbackRequest domain.JudgeSubmissionCallbackRequest
 	if err := ctx.ShouldBindJSON(&judgeSubmissionCallbackRequest); err != nil {
 		utils.SendError(ctx, http.StatusBadRequest, err, "Invalid Request Body")
@@ -143,5 +148,6 @@ func (h *SubmissionHandler) JudgeSubmissionCallback(ctx *gin.Context) {
 		return
 	}
 
+	log.Info().Msg("Submission callback judged successfully")
 	utils.SendSuccess(ctx, http.StatusOK, nil, "Submission callback judged successfully")
 }

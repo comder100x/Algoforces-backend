@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type authService struct {
@@ -29,6 +30,7 @@ func (s *authService) Signup(ctx context.Context, req *domain.SignupRequest) (*d
 	hashedPassword, err := utils.HashPassword(req.Password)
 
 	if err != nil {
+		log.Error().Err(err).Str("email", req.Email).Msg("Failed to hash password during signup")
 		return nil, err
 	}
 
@@ -43,11 +45,13 @@ func (s *authService) Signup(ctx context.Context, req *domain.SignupRequest) (*d
 	err = s.userRepo.Create(ctx, newUser)
 
 	if err != nil {
+		log.Error().Err(err).Str("email", req.Email).Str("username", req.Username).Msg("Failed to create user in database")
 		return nil, err
 	}
 
 	jwtToken, err := utils.GenerateToken(newUser.Id, newUser.Role, newUser.Email)
 	if err != nil {
+		log.Error().Err(err).Str("user_id", newUser.Id).Msg("Failed to generate JWT token after signup")
 		return nil, err
 	}
 
@@ -61,6 +65,7 @@ func (s *authService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
+		log.Error().Err(err).Str("email", req.Email).Msg("Failed to get user by email during login")
 		return nil, err
 	}
 
@@ -69,11 +74,13 @@ func (s *authService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 	}
 
 	if !utils.VerifyPassword(req.Password, user.Password) {
+		log.Warn().Str("email", req.Email).Msg("Invalid password attempt during login")
 		return nil, errors.New("Password is incorrect")
 	}
 
 	jwtToken, err := utils.GenerateToken(user.Id, user.Role, user.Email)
 	if err != nil {
+		log.Error().Err(err).Str("user_id", user.Id).Msg("Failed to generate JWT token during login")
 		return nil, err
 	}
 

@@ -37,6 +37,21 @@ type ProblemCreationResponse struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 
+type ProblemListResponse struct {
+	Problems    []ProblemCreationResponse `json:"problems"`
+	Total       int                       `json:"total"`
+	Page        int                       `json:"page"`
+	Limit       int                       `json:"limit"`
+	TotalPages  int                       `json:"total_pages"`
+	HasNext     bool                      `json:"has_next"`
+	HasPrevious bool                      `json:"has_previous"`
+}
+
+type AllProblemListResponse struct {
+	Problems []Problem `json:"problems"`
+	Total    int                       `json:"total"`
+}
+
 type ProblemUpdateRequest struct {
 	UniqueID           string `json:"unique_id" binding:"required,uuid"`
 	Title              string `json:"title" binding:"required"`
@@ -74,7 +89,7 @@ type ProblemRepository interface {
 	GetProblemByID(ctx context.Context, id string) (*Problem, error)
 	UpdateProblem(ctx context.Context, problem *Problem) error
 	DeleteProblem(ctx context.Context, id string) error
-	GetAllProblems(ctx context.Context) ([]Problem, error)
+	GetAllProblems(ctx context.Context, pageOffset int, limit int) (*AllProblemListResponse, error)
 }
 
 type ProblemUseCase interface {
@@ -83,5 +98,5 @@ type ProblemUseCase interface {
 	GetProblemByID(ctx context.Context, id string) (*ProblemCreationResponse, error)
 	UpdateProblem(ctx context.Context, req *ProblemUpdateRequest, userID string) (*ProblemUpdateResponse, error)
 	DeleteProblem(ctx context.Context, id string, userID string) error
-	GetAllProblems(ctx context.Context) ([]ProblemCreationResponse, error)
+	GetAllProblems(ctx context.Context, pageOffset int) (*ProblemListResponse, error)
 }

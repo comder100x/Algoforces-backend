@@ -4,7 +4,6 @@ import (
 	"algoforces/internal/domain"
 	"context"
 	"errors"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -47,12 +46,5 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*domain.User, 
 }
 
 func (r *userRepository) UpdateByID(ctx context.Context, id string, user *domain.User) error {
-	fmt.Printf("DEBUG: Repository UpdateByID called for user ID: %s\n", id)
-	err := r.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", id).Updates(user).Error
-	if err != nil {
-		fmt.Printf("DEBUG: Repository UpdateByID failed: %v\n", err)
-	} else {
-		fmt.Println("DEBUG: Repository UpdateByID successful")
-	}
-	return err
+	return r.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", id).Updates(user).Error
 }

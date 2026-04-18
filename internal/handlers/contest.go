@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 type ContestHandler struct {
@@ -35,21 +36,25 @@ func NewContestHandler(contestUseCase domain.ContestUseCase) *ContestHandler {
 func (h *ContestHandler) CreateContest(c *gin.Context) {
 	var createContestRequest domain.CreateContestRequest
 	if err := c.ShouldBindJSON(&createContestRequest); err != nil {
+		log.Error().Err(err).Msg("Invalid create contest request body")
 		utils.SendError(c, http.StatusBadRequest, err, "Invalid request body")
 		return
 	}
 	userId, err := middleware.GetUserID(c)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user ID from context")
 		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get user ID")
 		return
 	}
 
 	contestResponse, err := h.contestUseCase.CreateContest(c.Request.Context(), &createContestRequest, userId)
 	if err != nil {
+		log.Error().Err(err).Str("user_id", userId).Str("name", createContestRequest.Name).Msg("Failed to create contest")
 		utils.SendError(c, http.StatusInternalServerError, err, "Failed to create contest")
 		return
 	}
 
+	log.Info().Str("user_id", userId).Str("contest_id", contestResponse.Id).Str("name", createContestRequest.Name).Msg("Contest created successfully")
 	utils.SendSuccess(c, http.StatusCreated, contestResponse, "Contest created successfully")
 
 }
@@ -69,12 +74,14 @@ func (h *ContestHandler) CreateContest(c *gin.Context) {
 func (h *ContestHandler) GetContestDetails(c *gin.Context) {
 	contestId := c.Param("id")
 	if contestId == "" {
+		log.Error().Msg("Contest ID is required but not provided")
 		utils.SendError(c, http.StatusBadRequest, nil, "Contest ID is required")
 		return
 	}
 
 	contestResponse, err := h.contestUseCase.GetContestDetails(c.Request.Context(), contestId)
 	if err != nil {
+		log.Error().Err(err).Str("contest_id", contestId).Msg("Contest not found")
 		utils.SendError(c, http.StatusNotFound, err, "Contest not found")
 		return
 	}

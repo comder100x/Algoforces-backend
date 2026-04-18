@@ -3,10 +3,12 @@ package database
 import (
 	"algoforces/internal/conf"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"time"
 
+	zlog "github.com/rs/zerolog/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -38,14 +40,14 @@ func NewPostgresConnection() (*Database, error) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
 		config.Host, config.User, config.Password, config.DBName, config.Port, config.SSLMode)
 
-	// Configure GORM logger
+	// Configure GORM logger - Silent to avoid verbose migration/query spam
 	gormLogger := logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		log.New(io.Discard, "", 0),
 		logger.Config{
-			SlowThreshold:             time.Second,
-			LogLevel:                  logger.Info,
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  logger.Silent,
 			IgnoreRecordNotFoundError: true,
-			Colorful:                  true,
+			Colorful:                  false,
 		},
 	)
 
@@ -76,7 +78,7 @@ func NewPostgresConnection() (*Database, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	log.Println("Successfully connected to PostgreSQL database")
+	zlog.Info().Str("host", config.Host).Str("db", config.DBName).Msg("Connected to PostgreSQL")
 
 	return &Database{db}, nil
 }

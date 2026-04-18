@@ -3,36 +3,39 @@
 package conf
 
 import (
-	"fmt"
 	"os"
 )
 
 // Default configuration values
 const (
-	defaultJWT_SECRET     = "dev-secret-key-change-in-production"
-	defaultDB_HOST        = "host.docker.internal"
-	defaultDB_PORT        = "5432"
-	defaultDB_USER        = "postgres"
-	defaultDB_PASSWORD    = "postgres"
-	defaultDB_NAME        = "algoforces"
-	defaultDB_SSLMODE     = "disable"
-	defaultREDIS_ADDR     = "localhost:6379"
-	defaultJUDGE0_URL     = "http://localhost:2358"
-	defaultJUDGE0_API_KEY = ""
+	defaultJWT_SECRET       = "dev-secret-key-change-in-production"
+	defaultDB_HOST          = "host.docker.internal"
+	defaultDB_PORT          = "5432"
+	defaultDB_USER          = "postgres"
+	defaultDB_PASSWORD      = "postgres"
+	defaultDB_NAME          = "algoforces"
+	defaultDB_SSLMODE       = "disable"
+	defaultREDIS_ADDR       = "localhost:6379"
+	defaultJUDGE0_URL       = "http://localhost:2358"
+	defaultJUDGE0_API_KEY   = ""
+	defaultENV              = "dev"
+	defaultPAGINATION_LIMIT = 10
 )
 
 // Configuration variables with defaults and environment overrides
 var (
-	JWT_SECRET     string
-	DB_HOST        string
-	DB_PORT        string
-	DB_USER        string
-	DB_PASSWORD    string
-	DB_NAME        string
-	DB_SSLMODE     string
-	REDIS_URL      string
-	JUDGE0_URL     string
-	JUDGE0_API_KEY string
+	JWT_SECRET       string
+	DB_HOST          string
+	DB_PORT          string
+	DB_USER          string
+	DB_PASSWORD      string
+	DB_NAME          string
+	DB_SSLMODE       string
+	REDIS_URL        string
+	JUDGE0_URL       string
+	JUDGE0_API_KEY   string
+	ENV              string
+	PAGINATION_LIMIT string
 )
 
 // init function runs when the package is imported
@@ -48,7 +51,7 @@ func init() {
 	REDIS_URL = defaultREDIS_ADDR
 	JUDGE0_URL = defaultJUDGE0_URL
 	JUDGE0_API_KEY = defaultJUDGE0_API_KEY
-	fmt.Println("db host", DB_HOST)
+	ENV = defaultENV
 
 	// Override with environment variables if they exist
 	if envValue := os.Getenv("JWT_SECRET"); envValue != "" {
@@ -81,5 +84,11 @@ func init() {
 	}
 	if envValue := os.Getenv("JUDGE0_API_KEY"); envValue != "" {
 		JUDGE0_API_KEY = envValue
+	}
+	if envValue := os.Getenv("ENV"); envValue != "" {
+		ENV = envValue
+	}
+	if envValue := os.Getenv("PAGINATION_LIMIT"); envValue != "" {
+		PAGINATION_LIMIT = envValue
 	}
 }
