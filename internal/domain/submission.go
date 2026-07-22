@@ -87,6 +87,7 @@ type Submission struct {
 	TestCaseResults   pq.StringArray `json:"test_case_results" gorm:"type:text[]"` // JSON array of test results
 	FailedTestCase    *string        `json:"failed_test_case" gorm:"type:text"`    // First failed test case details
 	JudgeCompletedAt  *time.Time     `json:"judge_completed_at"`
+	MaxPoints         int            `json:"max_points" gorm:"default:0"`
 }
 
 type CreateSubmissionRequest struct {
@@ -220,6 +221,7 @@ type Judge0FormattedResult struct {
 type SubmissionRepository interface {
 	GetAllTestCasesForProblem(ctx context.Context, problemID string) ([]TestCase, error)
 	GetTestCaseByID(ctx context.Context, testCaseID string) (*TestCase, error)
+	GetContestProblemMaxPoints(ctx context.Context, contestID, problemID string) (int, error)
 	CreateNewSubmission(ctx context.Context, submission *Submission) error
 	GetSubmissionDetails(ctx context.Context, uniqueID string) (*Submission, error)
 	UpdateSubmissionStatus(ctx context.Context, submissionID string, status string) error

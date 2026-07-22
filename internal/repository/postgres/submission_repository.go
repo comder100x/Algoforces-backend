@@ -46,6 +46,17 @@ func (r *submissionRepository) GetAllTestCasesForProblem(ctx context.Context, pr
 	return testCases, nil
 }
 
+func (r *submissionRepository) GetContestProblemMaxPoints(ctx context.Context, contestID, problemID string) (int, error) {
+	var contestProblem domain.ContestProblems
+	err := r.db.WithContext(ctx).
+		Where("contest_id = ? AND problem_id = ?", contestID, problemID).
+		First(&contestProblem).Error
+	if err != nil {
+		return 0, err
+	}
+	return contestProblem.MaxPoints, nil
+}
+
 func (r *submissionRepository) UpdateSubmissionResult(ctx context.Context, submissionID string, result *domain.Submission) error {
 	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Updates(result).Error
 }

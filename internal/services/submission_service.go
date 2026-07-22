@@ -50,11 +50,23 @@ func GetLanguageID(language string) (int, error) {
 	}
 }
 
+func submissionScore(passed, total, maxPoints int) int {
+	if total > 0 && passed == total {
+		return maxPoints
+	}
+	return 0
+}
+
 func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain.CreateSubmissionRequest) (*domain.CreateSubmissionResponse, error) {
 	// Get all testCases for the problem
 	testCases, err := s.submissionRepo.GetAllTestCasesForProblem(ctx, req.ProblemID)
 	if err != nil {
 		return nil, err
+	}
+
+	maxPoints, err := s.submissionRepo.GetContestProblemMaxPoints(ctx, req.ContestID, req.ProblemID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get contest problem max points: %w", err)
 	}
 
 	submissionID := uuid.New().String()
@@ -68,6 +80,7 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 		Code:           req.Code,
 		Language:       req.Language,
 		TotalTestCases: len(testCases),
+		MaxPoints:      maxPoints,
 		SubmittedAt:    timNow,
 		Verdict:        string(domain.VerdictPending),
 	}
@@ -234,13 +247,13 @@ func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *do
 		return s.updateSubmissionError(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults, submission.TokenList)
 	}
 	if submission.TestCasesPassed == submission.TotalTestCases {
-		return s.updateSubmissionSuccess(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults, submission.TokenList)
+		return s.updateSubmissionSuccess(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.MaxPoints, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults, submission.TokenList)
 	}
 	_, err = s.UpdateSubmissionResult(ctx, submission.UniqueID, &domain.UpdateSubmissionResultRequest{
 		TokenList:         submission.TokenList,
 		Verdict:           string(verdict),
 		TestCaseResults:   submission.TestCaseResults,
-		Score:             submission.TestCasesPassed,
+		Score:             0,
 		TestCasesPassed:   submission.TestCasesPassed,
 		TotalTestCases:    submission.TotalTestCases,
 		ExecutionTimeInMS: submission.ExecutionTimeInMS,
@@ -308,15 +321,16 @@ func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestC
 
 // updateSubmissionSuccess updates the submission with success result
 func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submissionID string,
-	verdict domain.VerdictStatus, passed, total int,
+	verdict domain.VerdictStatus, passed, total, maxPoints int,
 	maxTime float64, maxMemory float64, results []string, tokenList []string) error {
 
 	now := time.Now()
+	score := submissionScore(passed, total, maxPoints)
 
 	// Update submission result
 	err := s.submissionRepo.UpdateSubmissionResult(ctx, submissionID, &domain.Submission{
 		Verdict:           string(verdict),
-		Score:             passed,
+		Score:             score,
 		TestCasesPassed:   passed,
 		TotalTestCases:    total,
 		ExecutionTimeInMS: maxTime,
@@ -335,6 +349,7 @@ func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submiss
 		Str("verdict", string(verdict)).
 		Int("passed", passed).
 		Int("total", total).
+		Int("score", score).
 		Msg("submission completed")
 
 	return nil
