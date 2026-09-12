@@ -98,36 +98,62 @@ cd Algoforces-Services
 go mod download
 ```
 
-### 3. Database Setup
+### 3. Start Required Services
 
-Ensure PostgreSQL is running and create a database for the application. Update your database configuration in the environment variables or configuration file.
-
-### 4. Environment Variables
-
-Set up the following environment variables:
+The API needs PostgreSQL. For local development, you can start the provided devcontainer database stack:
 
 ```bash
-# Database Configuration
+docker compose -f .devcontainer/docker-compose.yml up -d postgres redis judge0-server judge0-worker
+```
+
+This exposes the application database on host port `5433`, while the container database port remains `5432`.
+
+If you already have PostgreSQL running locally, create the `algoforces` database yourself and use your own connection values.
+
+### 4. Configure Environment Variables
+
+Create a local `.env` from the example file:
+
+```bash
+cp .env.example .env
+```
+
+For the provided Docker Compose database, use:
+
+```bash
 DB_HOST=localhost
-DB_PORT=5432
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
+DB_PORT=5433
+DB_USER=postgres
+DB_PASSWORD=postgres
 DB_NAME=algoforces
+DB_SSLMODE=disable
 
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key
-
-# Server Configuration
-PORT=8080
+REDIS_URL=localhost:6379
+JUDGE0_URL=http://localhost:2358
+APP_URL=http://localhost:8080
+JWT_SECRET=your-local-development-secret
 ```
 
 ### 5. Run the Application
 
+Export the env file, then start the API:
+
 ```bash
+set -a
+source .env
+set +a
 go run cmd/api/main.go
 ```
 
-The server will start on `http://localhost:8080`
+The server starts on `http://localhost:8080`.
+
+Check it with:
+
+```bash
+curl http://localhost:8080/api/health
+```
+
+Swagger docs are available at `http://localhost:8080/swagger/index.html`.
 
 ## 🐳 Docker Deployment
 
