@@ -30,7 +30,7 @@ func (s *problemService) CreateProblem(ctx context.Context, req *domain.ProblemC
 		return nil, errors.New("user not found")
 	}
 
-	if user.Role != "admin" && user.Role != "problem_setter" {
+	if user.Role != "admin" && user.Role != "problem-setter" {
 		return nil, errors.New("user does not have permission to create problems")
 	}
 
@@ -77,7 +77,7 @@ func (s *problemService) CreateProblemsInBulk(ctx context.Context, req *domain.B
 		return nil, errors.New("user not found")
 	}
 
-	if user.Role != "admin" && user.Role != "problem_setter" {
+	if user.Role != "admin" && user.Role != "problem-setter" {
 		return nil, errors.New("user does not have permission to create problems")
 	}
 
@@ -155,7 +155,7 @@ func (s *problemService) UpdateProblem(ctx context.Context, req *domain.ProblemU
 		return nil, errors.New("user not found")
 	}
 
-	if user.Role != "admin" && user.Role != "problem_setter" {
+	if user.Role != "admin" && user.Role != "problem-setter" {
 		return nil, errors.New("user does not have permission to update problems")
 	}
 
@@ -210,7 +210,7 @@ func (s *problemService) DeleteProblem(ctx context.Context, id string, userID st
 		return errors.New("user not found")
 	}
 
-	if user.Role != "admin" && user.Role != "problem_setter" {
+	if user.Role != "admin" && user.Role != "problem-setter" {
 		return errors.New("user does not have permission to delete problems")
 	}
 

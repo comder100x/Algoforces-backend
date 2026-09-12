@@ -135,11 +135,11 @@ func main() {
 	contestProblems := r.Group("/api/contest-problem")
 	contestProblems.Use(middleware.AuthMiddleware())
 	{
-		contestProblems.POST("/create", middleware.RoleMiddleware("admin", "problem_setter"), contestProblemsHandler.CreateContestProblem)
-		contestProblems.POST("/bulk", middleware.RoleMiddleware("admin", "problem_setter"), contestProblemsHandler.BulkCreateContestProblems)
+		contestProblems.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), contestProblemsHandler.CreateContestProblem)
+		contestProblems.POST("/bulk", middleware.RoleMiddleware("admin", "problem-setter"), contestProblemsHandler.BulkCreateContestProblems)
 		contestProblems.GET("/:id", contestProblemsHandler.GetContestProblem)
 		contestProblems.GET("/contest/:contestId", contestProblemsHandler.GetContestProblems)
-		contestProblems.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), contestProblemsHandler.UpdateContestProblem)
+		contestProblems.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), contestProblemsHandler.UpdateContestProblem)
 		contestProblems.DELETE("/:id", middleware.RoleMiddleware("admin"), contestProblemsHandler.DeleteContestProblem)
 	}
 
@@ -147,24 +147,24 @@ func main() {
 	problem := r.Group("/api/problem")
 	problem.Use(middleware.AuthMiddleware())
 	{
-		problem.POST("/create", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.CreateProblem)
-		problem.POST("/bulk", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.CreateProblemsInBulk)
+		problem.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), problemHandler.CreateProblem)
+		problem.POST("/bulk", middleware.RoleMiddleware("admin", "problem-setter"), problemHandler.CreateProblemsInBulk)
 		problem.GET("/all", problemHandler.GetAllProblems)
 		problem.GET("/:id", problemHandler.GetProblemByID)
-		problem.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.UpdateProblem)
-		problem.DELETE("/:id", middleware.RoleMiddleware("admin", "problem_setter"), problemHandler.DeleteProblem)
+		problem.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), problemHandler.UpdateProblem)
+		problem.DELETE("/:id", middleware.RoleMiddleware("admin", "problem-setter"), problemHandler.DeleteProblem)
 	}
 
 	// Test case routes (protected)
 	testCase := r.Group("/api/testcase")
 	testCase.Use(middleware.AuthMiddleware())
 	{
-		testCase.POST("/create", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.CreateTestCase)
-		testCase.POST("/bulk", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.UploadTestCasesInBulk)
+		testCase.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), testCaseHandler.CreateTestCase)
+		testCase.POST("/bulk", middleware.RoleMiddleware("admin", "problem-setter"), testCaseHandler.UploadTestCasesInBulk)
 		testCase.GET("/problem/:problemId", testCaseHandler.GetAllTestCasesForProblem)
 		testCase.GET("/:id", testCaseHandler.GetTestCaseDetails)
-		testCase.PUT("/update", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.UpdateTestCase)
-		testCase.DELETE("/:id", middleware.RoleMiddleware("admin", "problem_setter"), testCaseHandler.DeleteTestCase)
+		testCase.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), testCaseHandler.UpdateTestCase)
+		testCase.DELETE("/:id", middleware.RoleMiddleware("admin", "problem-setter"), testCaseHandler.DeleteTestCase)
 	}
 
 	// Submission routes (protected)

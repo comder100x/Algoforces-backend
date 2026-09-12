@@ -36,11 +36,11 @@ func (s *contestService) CreateContest(ctx context.Context, req *domain.CreateCo
 	for _, psUserId := range req.ProblemSetters {
 		user, err := s.userRepo.GetByID(ctx, psUserId)
 		if err != nil {
-			log.Error().Err(err).Str("user_id", userId).Str("problem_setter_id", psUserId).Msg("Failed to get problem setter user")
+			log.Error().Err(err).Str("user_id", userId).Str("problem-setter_id", psUserId).Msg("Failed to get problem setter user")
 			return nil, err
 		}
-		if user.Role != "problem_setter" && user.Role != "admin" {
-			log.Warn().Str("user_id", userId).Str("problem_setter_id", psUserId).Str("role", user.Role).Msg("Unauthorized user attempted to be added as problem setter")
+		if user.Role != "problem-setter" && user.Role != "admin" {
+			log.Warn().Str("user_id", userId).Str("problem-setter_id", psUserId).Str("role", user.Role).Msg("Unauthorized user attempted to be added as problem setter")
 			return nil, errors.New("user " + psUserId + " is not authorized as problem setter")
 		}
 	}
@@ -99,7 +99,7 @@ func (s *contestService) UpdateContest(ctx context.Context, req *domain.UpdateCo
 		if err != nil {
 			return nil, err
 		}
-		if user.Role != "problem_setter" && user.Role != "admin" {
+		if user.Role != "problem-setter" && user.Role != "admin" {
 			return nil, errors.New("user " + psUserId + " is not authorized as problem setter")
 		}
 	}

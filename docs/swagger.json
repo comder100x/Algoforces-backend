@@ -2006,7 +2006,7 @@
                     "enum": [
                         "admin",
                         "user",
-                        "problem_setter"
+                        "problem-setter"
                     ]
                 }
             }
@@ -2325,7 +2325,7 @@
                 "name": {
                     "type": "string"
                 },
-                "problem_setters": {
+                "problem-setters": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2367,7 +2367,7 @@
                 "name": {
                     "type": "string"
                 },
-                "problem_setters": {
+                "problem-setters": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2788,7 +2788,7 @@
                     "enum": [
                         "admin",
                         "user",
-                        "problem_setter"
+                        "problem-setter"
                     ]
                 }
             }
@@ -2930,7 +2930,7 @@
                 "name": {
                     "type": "string"
                 },
-                "problem_setters": {
+                "problem-setters": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2972,7 +2972,7 @@
                 "name": {
                     "type": "string"
                 },
-                "problem_setters": {
+                "problem-setters": {
                     "type": "array",
                     "items": {
                         "type": "string"

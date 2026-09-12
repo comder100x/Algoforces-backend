@@ -2012,7 +2012,7 @@ const docTemplate = `{
                     "enum": [
                         "admin",
                         "user",
-                        "problem_setter"
+                        "problem-setter"
                     ]
                 }
             }
@@ -2331,7 +2331,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "problem_setters": {
+                "problem-setters": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2373,7 +2373,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "problem_setters": {
+                "problem-setters": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2794,7 +2794,7 @@ const docTemplate = `{
                     "enum": [
                         "admin",
                         "user",
-                        "problem_setter"
+                        "problem-setter"
                     ]
                 }
             }
@@ -2936,7 +2936,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "problem_setters": {
+                "problem-setters": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2978,7 +2978,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "problem_setters": {
+                "problem-setters": {
                     "type": "array",
                     "items": {
                         "type": "string"

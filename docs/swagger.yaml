@@ -8,7 +8,7 @@ definitions:
         enum:
         - admin
         - user
-        - problem_setter
+        - problem-setter
         type: string
     required:
     - email
@@ -214,7 +214,7 @@ definitions:
         type: boolean
       name:
         type: string
-      problem_setters:
+      problem-setters:
         items:
           type: string
         type: array
@@ -247,7 +247,7 @@ definitions:
         type: boolean
       name:
         type: string
-      problem_setters:
+      problem-setters:
         items:
           type: string
         type: array
@@ -530,7 +530,7 @@ definitions:
         enum:
         - admin
         - user
-        - problem_setter
+        - problem-setter
         type: string
     required:
     - email
@@ -623,7 +623,7 @@ definitions:
         type: boolean
       name:
         type: string
-      problem_setters:
+      problem-setters:
         items:
           type: string
         type: array
@@ -657,7 +657,7 @@ definitions:
         type: boolean
       name:
         type: string
-      problem_setters:
+      problem-setters:
         items:
           type: string
         type: array
