@@ -1,21 +1,10 @@
 package main
 
 import (
-	"algoforces/internal/conf"
-	"algoforces/internal/domain"
-	"algoforces/internal/handlers"
-	"algoforces/internal/middleware"
-	"algoforces/internal/repository/postgres"
-	"algoforces/internal/services"
-	"algoforces/internal/utils"
-	"algoforces/pkg/database"
+	"algoforces/internal/app"
+	"algoforces/internal/server"
 
-	_ "algoforces/docs" // Import generated docs for Swagger
-
-	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 //	@title			Algoforces API
@@ -31,156 +20,14 @@ import (
 //	@description				Enter your token only (without Bearer prefix)
 
 func main() {
-	// 1. Initialize logger first (so all output is consistent)
-	utils.Init(conf.ENV)
-
-	db, err := database.NewPostgresConnection()
+	application, err := app.New()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to database")
+		log.Fatal().Err(err).Msg("Failed to initialize application")
 	}
-	defer db.Close()
-
-	err = db.AutoMigrate(&domain.User{}, &domain.Contest{}, &domain.ContestRegistration{}, &domain.ContestProblems{}, &domain.Problem{}, &domain.TestCase{}, &domain.Submission{}, &domain.SubmissionTestCaseMapping{})
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to migrate database")
-	}
+	defer application.Close()
 
 	log.Info().Msg("Starting Algoforces API on :8080")
-	// 2. Initialize dependencies
-	userRepo := postgres.NewUserRepository(db.DB)
-	adminRepo := postgres.NewAdminRepository(db.DB)
-	contestRepo := postgres.NewContestRepository(db.DB)
-	contestRegisterRepo := postgres.NewContestRegisterRepository(db.DB)
-	contestProblemsRepo := postgres.NewContestProblemsRepository(db.DB)
-	problemRepo := postgres.NewProblemRepository(db.DB)
-	testCaseRepo := postgres.NewTestCaseRepository(db.DB)
-	submissionRepo := postgres.NewSubmissionRepository(db.DB)
-
-	authService := services.NewAuthService(userRepo)
-	adminService := services.NewAdminService(adminRepo)
-	contestService := services.NewContestService(contestRepo, userRepo)
-	contestRegisterService := services.NewContestRegisterService(contestRegisterRepo, contestRepo, userRepo)
-	contestProblemsService := services.NewContestProblemsService(contestProblemsRepo, contestRepo, problemRepo)
-	problemService := services.NewProblemService(problemRepo, userRepo)
-	testCaseService := services.NewTestCaseService(testCaseRepo)
-	submissionService := services.NewSubmissionService(submissionRepo, conf.JUDGE0_API_KEY, conf.JUDGE0_URL)
-
-	authHandler := handlers.NewAuthHandler(authService)
-	userHandler := handlers.NewUserHandler(authService)
-	adminHandler := handlers.NewAdminHandler(adminService)
-	contestHandler := handlers.NewContestHandler(contestService)
-	contestRegisterHandler := handlers.NewContestRegisterHandler(contestRegisterService)
-	contestProblemsHandler := handlers.NewContestProblemsHandler(contestProblemsService)
-	problemHandler := handlers.NewProblemHandler(problemService)
-	testCaseHandler := handlers.NewTestCaseHandler(testCaseService)
-	submissionHandler := handlers.NewSubmissionHandler(submissionService)
-	// 3. Setup router
-	r := gin.Default()
-
-	//swagger Registration
-	// Swagger route
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	// Public routes
-	r.GET("/api/health", handlers.GetHealth)
-
-	// Auth routes
-	auth := r.Group("/api/auth")
-	{
-		auth.POST("/signup", authHandler.Signup)
-		auth.POST("/login", authHandler.Login)
-	}
-
-	// User routes (protected)
-	user := r.Group("/api/user")
-	user.Use(middleware.AuthMiddleware())
-	{
-		user.GET("/profile", userHandler.GetUserProfile)
-		user.PUT("/profile", userHandler.UpdateUserProfile)
-	}
-
-	// Admin routes (protected + admin role required)
-	admin := r.Group("/api/admin")
-	admin.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
-	{
-		admin.PUT("/addrole", adminHandler.AddRole)
-		admin.PUT("/removerole", adminHandler.RemoveRole)
-		admin.GET("/users", adminHandler.GetAllUsers)
-		admin.GET("/admins", adminHandler.GetAdmins)
-		admin.GET("/problem-setters", adminHandler.GetProblemSetters)
-		admin.GET("/contests", contestHandler.GetAllContests)
-		admin.GET("/registrations", contestRegisterHandler.GetAllRegistrationsForAdmin)
-	}
-
-	// Contest routes (protected + admin/problem-setter role required)
-	contest := r.Group("/api/contest")
-	contest.Use(middleware.AuthMiddleware())
-	{
-		contest.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), contestHandler.CreateContest)
-		contest.GET("/:id", contestHandler.GetContestDetails)
-		contest.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), contestHandler.UpdateContest)
-		contest.DELETE("/:id", middleware.RoleMiddleware("admin"), contestHandler.DeleteContest)
-	}
-
-	// Contest registration routes (protected)
-	contestRegistration := r.Group("/api/contest")
-	contestRegistration.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user", "admin"))
-	{
-		contestRegistration.POST("/register", contestRegisterHandler.RegisterContest)
-		contestRegistration.POST("/unregister", contestRegisterHandler.UnregisterContest)
-		contestRegistration.GET("/registrations", contestRegisterHandler.GetAllRegistrations)
-	}
-
-	// Contest problems routes (protected)
-	contestProblems := r.Group("/api/contest-problem")
-	contestProblems.Use(middleware.AuthMiddleware())
-	{
-		contestProblems.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), contestProblemsHandler.CreateContestProblem)
-		contestProblems.POST("/bulk", middleware.RoleMiddleware("admin", "problem-setter"), contestProblemsHandler.BulkCreateContestProblems)
-		contestProblems.GET("/:id", contestProblemsHandler.GetContestProblem)
-		contestProblems.GET("/contest/:contestId", contestProblemsHandler.GetContestProblems)
-		contestProblems.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), contestProblemsHandler.UpdateContestProblem)
-		contestProblems.DELETE("/:id", middleware.RoleMiddleware("admin"), contestProblemsHandler.DeleteContestProblem)
-	}
-
-	// Problem routes (protected)
-	problem := r.Group("/api/problem")
-	problem.Use(middleware.AuthMiddleware())
-	{
-		problem.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), problemHandler.CreateProblem)
-		problem.POST("/bulk", middleware.RoleMiddleware("admin", "problem-setter"), problemHandler.CreateProblemsInBulk)
-		problem.GET("/all", problemHandler.GetAllProblems)
-		problem.GET("/:id", problemHandler.GetProblemByID)
-		problem.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), problemHandler.UpdateProblem)
-		problem.DELETE("/:id", middleware.RoleMiddleware("admin", "problem-setter"), problemHandler.DeleteProblem)
-	}
-
-	// Test case routes (protected)
-	testCase := r.Group("/api/testcase")
-	testCase.Use(middleware.AuthMiddleware())
-	{
-		testCase.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), testCaseHandler.CreateTestCase)
-		testCase.POST("/bulk", middleware.RoleMiddleware("admin", "problem-setter"), testCaseHandler.UploadTestCasesInBulk)
-		testCase.GET("/problem/:problemId", testCaseHandler.GetAllTestCasesForProblem)
-		testCase.GET("/:id", testCaseHandler.GetTestCaseDetails)
-		testCase.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), testCaseHandler.UpdateTestCase)
-		testCase.DELETE("/:id", middleware.RoleMiddleware("admin", "problem-setter"), testCaseHandler.DeleteTestCase)
-	}
-
-	// Submission routes (protected)
-	submission := r.Group("/api/submission")
-	submission.PUT("/callback", submissionHandler.JudgeSubmissionCallback)
-	submission.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user", "admin"))
-	{
-		submission.POST("/create", submissionHandler.CreateSubmission)
-		submission.GET("/:id", submissionHandler.GetSubmissionDetails)
-		submission.PUT("/update", submissionHandler.UpdateSubmissionStatus)
-
-	}
-
-	// 5. Start the Server
-	err = r.Run(":8080")
-	if err != nil {
+	if err := server.Run(application.Router, ":8080"); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start server")
 	}
 }
