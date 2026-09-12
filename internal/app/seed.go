@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	seedAdminID         = "11111111-1111-1111-1111-111111111111"
-	seedProblemSetterID = "22222222-2222-2222-2222-222222222222"
-	seedUserID          = "33333333-3333-3333-3333-333333333333"
-	seedContestID       = "44444444-4444-4444-4444-444444444444"
-	seedProblemOneID    = "55555555-5555-5555-5555-555555555555"
-	seedProblemTwoID    = "66666666-6666-6666-6666-666666666666"
+	seedAdminID         = "a1b2c3d4-1111-4111-8111-123456789abc"
+	seedProblemSetterID = "b2c3d4e5-2222-4222-8222-23456789abcd"
+	seedUserID          = "c3d4e5f6-3333-4333-8333-3456789abcde"
+	seedContestID       = "d4e5f6a7-4444-4444-8444-456789abcdef"
+	seedProblemOneID    = "e5f6a7b8-5555-4555-8555-56789abcdef1"
+	seedProblemTwoID    = "f6a7b8c9-6666-4666-8666-6789abcdef12"
 )
 
 func shouldSeed() bool {
@@ -70,10 +70,10 @@ func seed(db *database.Database) error {
 	}
 
 	testCases := []domain.TestCase{
-		{UniqueID: "77777777-7777-7777-7777-777777777771", ProblemID: seedProblemOneID, Input: "2 3", ExpectedOutput: "5", IsHidden: false, OrderPosition: 1},
-		{UniqueID: "77777777-7777-7777-7777-777777777772", ProblemID: seedProblemOneID, Input: "10 -4", ExpectedOutput: "6", IsHidden: true, OrderPosition: 2},
-		{UniqueID: "77777777-7777-7777-7777-777777777773", ProblemID: seedProblemTwoID, Input: "1 7 3", ExpectedOutput: "7", IsHidden: false, OrderPosition: 1},
-		{UniqueID: "77777777-7777-7777-7777-777777777774", ProblemID: seedProblemTwoID, Input: "-1 -5 -3", ExpectedOutput: "-1", IsHidden: true, OrderPosition: 2},
+		{UniqueID: "7a7b7c7d-7777-4777-8777-777777777771", ProblemID: seedProblemOneID, Input: "2 3", ExpectedOutput: "5", IsHidden: false, OrderPosition: 1},
+		{UniqueID: "7b7c7d7e-7777-4777-8777-777777777772", ProblemID: seedProblemOneID, Input: "10 -4", ExpectedOutput: "6", IsHidden: true, OrderPosition: 2},
+		{UniqueID: "7c7d7e7f-7777-4777-8777-777777777773", ProblemID: seedProblemTwoID, Input: "1 7 3", ExpectedOutput: "7", IsHidden: false, OrderPosition: 1},
+		{UniqueID: "7d7e7f8a-7777-4777-8777-777777777774", ProblemID: seedProblemTwoID, Input: "-1 -5 -3", ExpectedOutput: "-1", IsHidden: true, OrderPosition: 2},
 	}
 	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&testCases).Error; err != nil {
 		return err
@@ -96,8 +96,8 @@ func seed(db *database.Database) error {
 	}
 
 	contestProblems := []domain.ContestProblems{
-		{UniqueID: "88888888-8888-8888-8888-888888888881", ContestID: seedContestID, ProblemID: seedProblemOneID, OrderPosition: 1, MaxPoints: 100},
-		{UniqueID: "88888888-8888-8888-8888-888888888882", ContestID: seedContestID, ProblemID: seedProblemTwoID, OrderPosition: 2, MaxPoints: 100},
+		{UniqueID: "8a8b8c8d-8888-4888-8888-888888888881", ContestID: seedContestID, ProblemID: seedProblemOneID, OrderPosition: 1, MaxPoints: 100},
+		{UniqueID: "8b8c8d8e-8888-4888-8888-888888888882", ContestID: seedContestID, ProblemID: seedProblemTwoID, OrderPosition: 2, MaxPoints: 100},
 	}
 	return db.Clauses(clause.OnConflict{DoNothing: true}).Create(&contestProblems).Error
 }
