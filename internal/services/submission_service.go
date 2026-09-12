@@ -74,7 +74,7 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 	//Update the DB Status
 	submission := &domain.Submission{
 		UniqueID:       submissionID,
-		UserId:         ctx.Value("user_id").(string),
+		UserId:         req.UserID,
 		ContestID:      req.ContestID,
 		ProblemID:      req.ProblemID,
 		Code:           req.Code,
@@ -142,7 +142,7 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 	// Return response to user
 	return &domain.CreateSubmissionResponse{
 		UniqueID:    submissionID,
-		UserID:      ctx.Value("user_id").(string),
+		UserID:      req.UserID,
 		ContestID:   req.ContestID,
 		ProblemID:   req.ProblemID,
 		Language:    req.Language,

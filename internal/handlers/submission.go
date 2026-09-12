@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"algoforces/internal/domain"
+	"algoforces/internal/middleware"
 	"algoforces/internal/utils"
 	"net/http"
 
@@ -39,6 +40,13 @@ func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 		utils.SendError(ctx, http.StatusBadRequest, err, "Invalid Request Body")
 		return
 	}
+
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		utils.SendError(ctx, http.StatusUnauthorized, err, "User ID not found in token")
+		return
+	}
+	createSubmissionRequest.UserID = userID
 
 	// Call the use case to create a new submission
 	createSubmissionResponse, err := h.submissionUseCase.CreateNewSubmission(ctx.Request.Context(), &createSubmissionRequest)

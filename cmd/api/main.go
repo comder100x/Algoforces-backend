@@ -114,7 +114,7 @@ func main() {
 
 	// Contest routes (protected + admin/problem-setter role required)
 	contest := r.Group("/api/contest")
-	contest.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
+	contest.Use(middleware.AuthMiddleware())
 	{
 		contest.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), contestHandler.CreateContest)
 		contest.GET("/:id", contestHandler.GetContestDetails)

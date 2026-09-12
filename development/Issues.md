@@ -7,8 +7,8 @@ High Priority
    See [main.go (line 177)](/Users/harsh.g/Documents/GitHub/Algoforces-backend/cmd/api/main.go:177) and [submission.go (line 98)](/Users/harsh.g/Documents/GitHub/Algoforces-backend/internal/handlers/submission.go:98).
    It should likely be PUT /api/submission/:id/update.
 3. Role naming mismatch
-  Some routes use problem-setter, others use problem-setter.
-   See [main.go (line 119)](/Users/harsh.g/Documents/GitHub/Algoforces-backend/cmd/api/main.go:119) and [main.go (line 138)](/Users/harsh.g/Documents/GitHub/Algoforces-backend/cmd/api/main.go:138).
+  Some routes use problem-setter, others use problem-setter. `Done`  
+   See [main.go (line 119)](/Users/harsh.g/Documents/GitHub/Algoforces-backend/cmd/api/main.go:119) and [main.go (line 138)](/Users/harsh.g/Documents/GitHub/Algoforces-backend/cmd/api/main.go:138).  
    Domain validation uses problem-setter, so contest routes may fail for problem setters.
 4. Config design needs cleanup
   Config uses global vars and weak defaults like default JWT secret/database password.
