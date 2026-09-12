@@ -155,6 +155,20 @@ curl http://localhost:8080/api/health
 
 Swagger docs are available at `http://localhost:8080/swagger/index.html`.
 
+### 6. Seed Data
+
+In local development, the app automatically creates starter data after database migration. Seeding is skipped when `ENV=prod` or `ENV=production`.
+
+Default login accounts use password `password123`:
+
+| Role | Email |
+|------|-------|
+| Admin | `admin@algoforces.local` |
+| Problem Setter | `setter@algoforces.local` |
+| User | `user@algoforces.local` |
+
+The seed also creates a demo contest, two easy problems, test cases, and contest-problem mappings. It is safe to restart the app because seed rows use fixed IDs and are inserted only if missing.
+
 ## 🐳 Docker Deployment
 
 ### Build Docker Image

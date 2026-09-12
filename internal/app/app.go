@@ -31,6 +31,13 @@ func New() (*App, error) {
 		return nil, err
 	}
 
+	if shouldSeed() {
+		if err := seed(db); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
+
 	return &App{
 		DB:     db,
 		Router: router.New(buildHandlers(db)),
