@@ -35,8 +35,6 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "API for Algoforces application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-	LeftDelim:        "{{",
-	RightDelim:       "}}",
 }
 
 func init() {
