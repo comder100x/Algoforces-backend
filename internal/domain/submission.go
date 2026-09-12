@@ -91,7 +91,6 @@ type Submission struct {
 }
 
 type CreateSubmissionRequest struct {
-	UserID            string `json:"user_id" binding:"required,uuid"`
 	ContestID         string `json:"contest_id" binding:"required,uuid"`
 	ProblemID         string `json:"problem_id" binding:"required,uuid"`
 	Code              string `json:"code" binding:"required"`
