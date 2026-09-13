@@ -1,6 +1,7 @@
 package services
 
 import (
+	"algoforces/internal/conf"
 	"algoforces/internal/domain"
 	"bytes"
 	"context"
@@ -10,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -89,7 +89,11 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 		return nil, err
 	}
 
-	callbackURL := os.Getenv("APP_URL") + "/api/submission/callback"
+	callbackBase := strings.TrimRight(conf.APP_URL, "/")
+	if callbackBase == "" {
+		callbackBase = "http://localhost:8080"
+	}
+	callbackURL := callbackBase + "/api/submission/callback"
 	//Get the Language ID
 	languageID, err := GetLanguageID(req.Language)
 	if err != nil {

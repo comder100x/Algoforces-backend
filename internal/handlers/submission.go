@@ -140,7 +140,7 @@ func (h *SubmissionHandler) UpdateSubmissionStatus(ctx *gin.Context) {
 //	@Success		200								{object}	utils.SuccessResponse
 //	@Failure		400								{object}	utils.ErrorResponse
 //	@Failure		500								{object}	utils.ErrorResponse
-//	@Router			/api/submission/callback [put]
+//	@Router			/api/submission/callback [post]
 func (h *SubmissionHandler) JudgeSubmissionCallback(ctx *gin.Context) {
 	log.Info().Msg("Received submission callback")
 	var judgeSubmissionCallbackRequest domain.JudgeSubmissionCallbackRequest

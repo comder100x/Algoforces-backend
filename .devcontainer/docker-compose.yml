@@ -66,6 +66,8 @@ services:
     image: judge0/judge0:1.13.1
     platform: linux/amd64  # Judge0 only supports amd64, will run under emulation on Apple Silicon
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file: judge0.conf
     environment:
       - REDIS_HOST=judge0-redis

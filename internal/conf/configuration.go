@@ -17,6 +17,7 @@ const (
 	defaultDB_SSLMODE       = "disable"
 	defaultREDIS_ADDR       = "localhost:6379"
 	defaultJUDGE0_URL       = "http://localhost:2358"
+	defaultAPP_URL          = "http://localhost:8080"
 	defaultJUDGE0_API_KEY   = ""
 	defaultENV              = "dev"
 	defaultPAGINATION_LIMIT = 10
@@ -33,6 +34,7 @@ var (
 	DB_SSLMODE       string
 	REDIS_URL        string
 	JUDGE0_URL       string
+	APP_URL          string
 	JUDGE0_API_KEY   string
 	ENV              string
 	PAGINATION_LIMIT string
@@ -50,6 +52,7 @@ func init() {
 	DB_SSLMODE = defaultDB_SSLMODE
 	REDIS_URL = defaultREDIS_ADDR
 	JUDGE0_URL = defaultJUDGE0_URL
+	APP_URL = defaultAPP_URL
 	JUDGE0_API_KEY = defaultJUDGE0_API_KEY
 	ENV = defaultENV
 
@@ -81,6 +84,9 @@ func init() {
 
 	if envValue := os.Getenv("JUDGE0_URL"); envValue != "" {
 		JUDGE0_URL = envValue
+	}
+	if envValue := os.Getenv("APP_URL"); envValue != "" {
+		APP_URL = envValue
 	}
 	if envValue := os.Getenv("JUDGE0_API_KEY"); envValue != "" {
 		JUDGE0_API_KEY = envValue

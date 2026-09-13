@@ -135,6 +135,7 @@ func registerTestCaseRoutes(r *gin.Engine, h Handlers) {
 
 func registerSubmissionRoutes(r *gin.Engine, h Handlers) {
 	submission := r.Group("/api/submission")
+	submission.POST("/callback", h.Submission.JudgeSubmissionCallback)
 	submission.PUT("/callback", h.Submission.JudgeSubmissionCallback)
 	submission.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user", "admin"))
 	{
