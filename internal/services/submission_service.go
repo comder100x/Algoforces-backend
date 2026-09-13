@@ -65,6 +65,11 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 		return nil, err
 	}
 
+	problem, err := s.submissionRepo.GetProblemByID(ctx, req.ProblemID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get problem limits: %w", err)
+	}
+
 	maxPoints, err := s.submissionRepo.GetContestProblemMaxPoints(ctx, req.ContestID, req.ProblemID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contest problem max points: %w", err)
@@ -111,8 +116,8 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 			SourceCode:     req.Code,
 			LanguageID:     languageID,
 			Stdin:          testCase.Input,
-			CPUTimeLimit:   float64(req.TimeLimitInSecond),
-			MemoryLimit:    req.MemoryLimitInMB * 1024,
+			CPUTimeLimit:   float64(problem.TimeLimitInSeconds),
+			MemoryLimit:    problem.MemoryLimitInMB * 1024,
 			ExpectedOutput: testCase.ExpectedOutput,
 			CallbackURL:    callbackURL,
 		})

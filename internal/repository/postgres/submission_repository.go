@@ -102,3 +102,12 @@ func (r *submissionRepository) GetTestCaseByID(ctx context.Context, testCaseID s
 	}
 	return &testCase, nil
 }
+
+func (r *submissionRepository) GetProblemByID(ctx context.Context, problemID string) (*domain.Problem, error) {
+	var problem domain.Problem
+	err := r.db.WithContext(ctx).Where("unique_id = ?", problemID).First(&problem).Error
+	if err != nil {
+		return nil, err
+	}
+	return &problem, nil
+}

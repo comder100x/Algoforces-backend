@@ -117,13 +117,11 @@ type SubmissionDetailsResponse struct {
 }
 
 type CreateSubmissionRequest struct {
-	UserID            string `json:"-"`
-	ContestID         string `json:"contest_id" binding:"required,uuid"`
-	ProblemID         string `json:"problem_id" binding:"required,uuid"`
-	Code              string `json:"code" binding:"required"`
-	Language          string `json:"language" binding:"required,oneof=python cpp java"`
-	TimeLimitInSecond int    `json:"time_limit" binding:"required,gt=0"`
-	MemoryLimitInMB   int    `json:"memory_limit" binding:"required,gt=0"`
+	UserID    string `json:"-"`
+	ContestID string `json:"contest_id" binding:"required,uuid"`
+	ProblemID string `json:"problem_id" binding:"required,uuid"`
+	Code      string `json:"code" binding:"required"`
+	Language  string `json:"language" binding:"required,oneof=python cpp java"`
 }
 
 type CreateSubmissionResponse struct {
@@ -270,6 +268,7 @@ type SubmissionTestCaseResult struct {
 type SubmissionRepository interface {
 	GetAllTestCasesForProblem(ctx context.Context, problemID string) ([]TestCase, error)
 	GetTestCaseByID(ctx context.Context, testCaseID string) (*TestCase, error)
+	GetProblemByID(ctx context.Context, problemID string) (*Problem, error)
 	GetContestProblemMaxPoints(ctx context.Context, contestID, problemID string) (int, error)
 	CreateNewSubmission(ctx context.Context, submission *Submission) error
 	GetSubmissionDetails(ctx context.Context, uniqueID string) (*Submission, error)
