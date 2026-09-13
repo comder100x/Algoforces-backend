@@ -58,7 +58,21 @@ func (r *submissionRepository) GetContestProblemMaxPoints(ctx context.Context, c
 }
 
 func (r *submissionRepository) UpdateSubmissionResult(ctx context.Context, submissionID string, result *domain.Submission) error {
-	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Updates(result).Error
+	updates := map[string]interface{}{
+		"verdict":              result.Verdict,
+		"score":                result.Score,
+		"test_cases_passed":    result.TestCasesPassed,
+		"total_test_cases":     result.TotalTestCases,
+		"execution_time_in_ms": result.ExecutionTimeInMS,
+		"memory_used_in_kb":    result.MemoryUsedInKB,
+		"compilation_error":    result.CompilationError,
+		"runtime_error":        result.RuntimeError,
+		"test_case_results":    result.TestCaseResults,
+		"failed_test_case":     result.FailedTestCase,
+		"judge_completed_at":   result.JudgeCompletedAt,
+		"token_list":           result.TokenList,
+	}
+	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Updates(updates).Error
 }
 
 func (r *submissionRepository) CreateTokenMapping(ctx context.Context, mapping *domain.SubmissionTestCaseMapping) error {

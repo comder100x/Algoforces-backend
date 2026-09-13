@@ -90,6 +90,32 @@ type Submission struct {
 	MaxPoints         int            `json:"max_points" gorm:"default:0"`
 }
 
+type SubmissionDetailsResponse struct {
+	UniqueID          string                     `json:"unique_id"`
+	UserID            string                     `json:"user_id"`
+	ContestID         string                     `json:"contest_id"`
+	ProblemID         string                     `json:"problem_id"`
+	Code              string                     `json:"code"`
+	Language          string                     `json:"language"`
+	SubmittedAt       time.Time                  `json:"submitted_at"`
+	CreatedAt         time.Time                  `json:"created_at"`
+	UpdatedAt         time.Time                  `json:"updated_at"`
+	QueuedAt          *time.Time                 `json:"queued_at"`
+	TokenList         pq.StringArray             `json:"token_list"`
+	Verdict           string                     `json:"verdict"`
+	Score             int                        `json:"score"`
+	TestCasesPassed   int                        `json:"test_cases_passed"`
+	TotalTestCases    int                        `json:"total_test_cases"`
+	ExecutionTimeInMS float64                    `json:"execution_time"`
+	MemoryUsedInKB    float64                    `json:"memory_used_in_kb"`
+	CompilationError  string                     `json:"compilation_error"`
+	RuntimeError      string                     `json:"runtime_error"`
+	TestCaseResults   []SubmissionTestCaseResult `json:"test_case_results"`
+	FailedTestCase    *SubmissionTestCaseResult  `json:"failed_test_case"`
+	JudgeCompletedAt  *time.Time                 `json:"judge_completed_at"`
+	MaxPoints         int                        `json:"max_points"`
+}
+
 type CreateSubmissionRequest struct {
 	UserID            string `json:"-"`
 	ContestID         string `json:"contest_id" binding:"required,uuid"`
@@ -206,14 +232,37 @@ type JudgeSubmissionCallbackRequest struct {
 }
 
 type Judge0FormattedResult struct {
-	TestExpectedOutput string  `json:"test_expected_output"`
+	TestCaseID         string  `json:"test_case_id,omitempty"`
+	TestNumber         int     `json:"test_number,omitempty"`
+	Verdict            string  `json:"verdict,omitempty"`
+	StatusID           int     `json:"status_id,omitempty"`
+	StatusDescription  string  `json:"status_description,omitempty"`
+	TestInput          string  `json:"test_input,omitempty"`
+	TestExpectedOutput string  `json:"test_expected_output,omitempty"`
 	IsHidden           bool    `json:"is_hidden" gorm:"not null"`
 	ExecutionTimeMS    float64 `json:"execution_time_ms"`
 	MemoryUsedKB       int     `json:"memory_used_kb"`
-	Stdout             string  `json:"stdout" gorm:"type:text"`
-	Stderr             string  `json:"stderr" gorm:"type:text"`
-	CompileOutput      string  `json:"compile_output" gorm:"type:text"`
-	Message            string  `json:"message" gorm:"type:text"`
+	Stdout             string  `json:"stdout,omitempty" gorm:"type:text"`
+	Stderr             string  `json:"stderr,omitempty" gorm:"type:text"`
+	CompileOutput      string  `json:"compile_output,omitempty" gorm:"type:text"`
+	Message            string  `json:"message,omitempty" gorm:"type:text"`
+}
+
+type SubmissionTestCaseResult struct {
+	TestCaseID         string  `json:"test_case_id,omitempty"`
+	TestNumber         int     `json:"test_number,omitempty"`
+	Verdict            string  `json:"verdict"`
+	StatusID           int     `json:"status_id,omitempty"`
+	StatusDescription  string  `json:"status_description,omitempty"`
+	IsHidden           bool    `json:"is_hidden"`
+	ExecutionTimeMS    float64 `json:"execution_time_ms"`
+	MemoryUsedKB       int     `json:"memory_used_kb"`
+	TestInput          string  `json:"test_input,omitempty"`
+	TestExpectedOutput string  `json:"test_expected_output,omitempty"`
+	Stdout             string  `json:"stdout,omitempty"`
+	Stderr             string  `json:"stderr,omitempty"`
+	CompileOutput      string  `json:"compile_output,omitempty"`
+	Message            string  `json:"message,omitempty"`
 }
 
 //-----------------------------------Related to JUDGE0---------------------------------------------------------//
@@ -233,7 +282,7 @@ type SubmissionRepository interface {
 
 type SubmissionUseCase interface {
 	CreateNewSubmission(ctx context.Context, req *CreateSubmissionRequest) (*CreateSubmissionResponse, error)
-	GetSubmissionDetails(ctx context.Context, uniqueID string) (*Submission, error)
+	GetSubmissionDetails(ctx context.Context, uniqueID string, includeHidden bool) (*SubmissionDetailsResponse, error)
 	UpdateSubmissionStatus(ctx context.Context, submissionID string, status string) error
 	UpdateSubmissionResult(ctx context.Context, submissionID string, req *UpdateSubmissionResultRequest) (*UpdateSubmissionResultResponse, error)
 	JudgeSubmissionCallback(ctx context.Context, req *JudgeSubmissionCallbackRequest) error

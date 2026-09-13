@@ -137,10 +137,11 @@ func registerSubmissionRoutes(r *gin.Engine, h Handlers) {
 	submission := r.Group("/api/submission")
 	submission.POST("/callback", h.Submission.JudgeSubmissionCallback)
 	submission.PUT("/callback", h.Submission.JudgeSubmissionCallback)
-	submission.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("user", "admin"))
+	submission.Use(middleware.AuthMiddleware())
 	{
-		submission.POST("/create", h.Submission.CreateSubmission)
-		submission.GET("/:id", h.Submission.GetSubmissionDetails)
-		submission.PUT("/update", h.Submission.UpdateSubmissionStatus)
+		submission.POST("/create", middleware.RoleMiddleware("user", "admin"), h.Submission.CreateSubmission)
+		submission.GET("/system/:id", middleware.RoleMiddleware("admin", "problem-setter"), h.Submission.GetSubmissionDetailsForSystem)
+		submission.GET("/:id", middleware.RoleMiddleware("user", "admin"), h.Submission.GetSubmissionDetails)
+		submission.PUT("/update", middleware.RoleMiddleware("user", "admin"), h.Submission.UpdateSubmissionStatus)
 	}
 }

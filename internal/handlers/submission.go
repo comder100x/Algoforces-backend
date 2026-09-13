@@ -79,8 +79,51 @@ func (h *SubmissionHandler) GetSubmissionDetails(ctx *gin.Context) {
 		return
 	}
 
-	// Call the use case to get submission details
-	submission, err := h.submissionUseCase.GetSubmissionDetails(ctx.Request.Context(), submissionID)
+	submission, err := h.submissionUseCase.GetSubmissionDetails(ctx.Request.Context(), submissionID, false)
+	if err != nil {
+		utils.SendError(ctx, http.StatusNotFound, err, "Submission not found")
+		return
+	}
+
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		utils.SendError(ctx, http.StatusUnauthorized, err, "User ID not found in token")
+		return
+	}
+	userRole, err := middleware.GetUserRole(ctx)
+	if err != nil {
+		utils.SendError(ctx, http.StatusForbidden, err, "User role not found")
+		return
+	}
+	if userRole == "user" && submission.UserID != userID {
+		utils.SendError(ctx, http.StatusForbidden, nil, "You can only view your own submissions")
+		return
+	}
+
+	utils.SendSuccess(ctx, http.StatusOK, submission, "Submission details retrieved successfully")
+}
+
+// GetSubmissionDetailsForSystem godoc
+//
+//	@Summary		Get submission details for system
+//	@Description	Get full submission details, including hidden test case data
+//	@Tags			Submission
+//	@Security		BearerAuth
+//	@Produce		json
+//	@Param			id	path		string	true	"Submission ID"
+//	@Success		200	{object}	utils.SuccessResponse{data=object}
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		403	{object}	utils.ErrorResponse
+//	@Failure		404	{object}	utils.ErrorResponse
+//	@Router			/api/submission/system/{id} [get]
+func (h *SubmissionHandler) GetSubmissionDetailsForSystem(ctx *gin.Context) {
+	submissionID := ctx.Param("id")
+	if submissionID == "" {
+		utils.SendError(ctx, http.StatusBadRequest, nil, "Submission ID is required")
+		return
+	}
+
+	submission, err := h.submissionUseCase.GetSubmissionDetails(ctx.Request.Context(), submissionID, true)
 	if err != nil {
 		utils.SendError(ctx, http.StatusNotFound, err, "Submission not found")
 		return

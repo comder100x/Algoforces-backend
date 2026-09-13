@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -159,8 +160,54 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 func (s *SubmissionService) UpdateSubmissionStatus(ctx context.Context, submissionID, status string) error {
 	return s.submissionRepo.UpdateSubmissionStatus(ctx, submissionID, status)
 }
-func (s *SubmissionService) GetSubmissionDetails(ctx context.Context, uniqueID string) (*domain.Submission, error) {
-	return s.submissionRepo.GetSubmissionDetails(ctx, uniqueID)
+func (s *SubmissionService) GetSubmissionDetails(ctx context.Context, uniqueID string, includeHidden bool) (*domain.SubmissionDetailsResponse, error) {
+	submission, err := s.submissionRepo.GetSubmissionDetails(ctx, uniqueID)
+	if err != nil {
+		return nil, err
+	}
+
+	results := s.parseSubmissionResults(submission.TestCaseResults, includeHidden)
+	var failedTestCase *domain.SubmissionTestCaseResult
+	if submission.FailedTestCase != nil && *submission.FailedTestCase != "" {
+		parsedFailed, err := s.parseStoredTestResult(*submission.FailedTestCase)
+		if err == nil && (includeHidden || !parsedFailed.IsHidden) {
+			if !includeHidden {
+				parsedFailed = s.sanitizeTestResult(parsedFailed)
+			}
+			failedTestCase = &parsedFailed
+		}
+	}
+
+	tokenList := submission.TokenList
+	if !includeHidden {
+		tokenList = nil
+	}
+
+	return &domain.SubmissionDetailsResponse{
+		UniqueID:          submission.UniqueID,
+		UserID:            submission.UserId,
+		ContestID:         submission.ContestID,
+		ProblemID:         submission.ProblemID,
+		Code:              submission.Code,
+		Language:          submission.Language,
+		SubmittedAt:       submission.SubmittedAt,
+		CreatedAt:         submission.CreatedAt,
+		UpdatedAt:         submission.UpdatedAt,
+		QueuedAt:          submission.QueuedAt,
+		TokenList:         tokenList,
+		Verdict:           submission.Verdict,
+		Score:             submission.Score,
+		TestCasesPassed:   submission.TestCasesPassed,
+		TotalTestCases:    submission.TotalTestCases,
+		ExecutionTimeInMS: submission.ExecutionTimeInMS,
+		MemoryUsedInKB:    submission.MemoryUsedInKB,
+		CompilationError:  submission.CompilationError,
+		RuntimeError:      submission.RuntimeError,
+		TestCaseResults:   results,
+		FailedTestCase:    failedTestCase,
+		JudgeCompletedAt:  submission.JudgeCompletedAt,
+		MaxPoints:         submission.MaxPoints,
+	}, nil
 }
 
 func (s *SubmissionService) UpdateSubmissionResult(ctx context.Context, submissionID string, req *domain.UpdateSubmissionResultRequest) (*domain.UpdateSubmissionResultResponse, error) {
@@ -237,31 +284,49 @@ func (s *SubmissionService) JudgeSubmissionCallback(ctx context.Context, req *do
 	verdict := s.mapJudge0Status(req.Status.ID)
 	// Create comprehensive test result using shared function
 	testNum := testMapping.TestOrderPosition
-	testResult := s.formatTestResult(testMapping, req, testNum, testMapping.IsHidden)
+	testResult := s.formatTestResult(testMapping, req, testNum, testMapping.IsHidden, verdict)
 	testResultJSON, _ := json.Marshal(testResult)
+
+	if s.hasToken(submission.TokenList, testMapping.Token) {
+		return s.submissionRepo.UpdateMappingStatus(ctx, testMapping.Token, string(verdict))
+	}
+
 	submission.TestCaseResults = append(submission.TestCaseResults, string(testResultJSON))
 
 	// Append the token to the list before any verdict check
 	submission.TokenList = append(submission.TokenList, testMapping.Token)
-
-	if verdict == domain.VerdictAccepted {
-		submission.TestCasesPassed++
-	} else {
-		submission.FailedTestCase = &testMapping.TestCaseID
-		return s.updateSubmissionError(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults, submission.TokenList)
+	if err := s.submissionRepo.UpdateMappingStatus(ctx, testMapping.Token, string(verdict)); err != nil {
+		return err
 	}
-	if submission.TestCasesPassed == submission.TotalTestCases {
-		return s.updateSubmissionSuccess(ctx, submission.UniqueID, verdict, submission.TestCasesPassed, submission.TotalTestCases, submission.MaxPoints, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults, submission.TokenList)
+
+	results := s.parseSubmissionResults(submission.TestCaseResults, true)
+	submission.TestCasesPassed = s.countAcceptedResults(results)
+	firstFailed := s.firstFailedResult(results)
+	if firstFailed != nil {
+		failedTestCaseJSON, _ := json.Marshal(firstFailed)
+		failedTestCase := string(failedTestCaseJSON)
+		submission.FailedTestCase = &failedTestCase
+	} else {
+		submission.FailedTestCase = nil
+	}
+
+	if len(submission.TokenList) == submission.TotalTestCases {
+		finalVerdict := domain.VerdictAccepted
+		if firstFailed != nil {
+			finalVerdict = domain.VerdictStatus(firstFailed.Verdict)
+		}
+		return s.updateSubmissionFinal(ctx, submission.UniqueID, finalVerdict, submission.TestCasesPassed, submission.TotalTestCases, submission.MaxPoints, submission.ExecutionTimeInMS, submission.MemoryUsedInKB, submission.TestCaseResults, submission.TokenList, submission.FailedTestCase)
 	}
 	_, err = s.UpdateSubmissionResult(ctx, submission.UniqueID, &domain.UpdateSubmissionResultRequest{
 		TokenList:         submission.TokenList,
-		Verdict:           string(verdict),
+		Verdict:           string(domain.VerdictProcessing),
 		TestCaseResults:   submission.TestCaseResults,
 		Score:             0,
 		TestCasesPassed:   submission.TestCasesPassed,
 		TotalTestCases:    submission.TotalTestCases,
 		ExecutionTimeInMS: submission.ExecutionTimeInMS,
 		MemoryUsedInKB:    submission.MemoryUsedInKB,
+		FailedTestCase:    submission.FailedTestCase,
 	})
 	if err != nil {
 		return err
@@ -304,14 +369,85 @@ func (s *SubmissionService) decodeBase64(encoded string) string {
 	return strings.TrimSpace(string(decoded))
 }
 
+func (s *SubmissionService) hasToken(tokens []string, token string) bool {
+	for _, existingToken := range tokens {
+		if existingToken == token {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *SubmissionService) parseStoredTestResult(raw string) (domain.SubmissionTestCaseResult, error) {
+	var result domain.SubmissionTestCaseResult
+	err := json.Unmarshal([]byte(raw), &result)
+	return result, err
+}
+
+func (s *SubmissionService) parseSubmissionResults(rawResults []string, includeHidden bool) []domain.SubmissionTestCaseResult {
+	results := make([]domain.SubmissionTestCaseResult, 0, len(rawResults))
+	for _, rawResult := range rawResults {
+		result, err := s.parseStoredTestResult(rawResult)
+		if err != nil {
+			log.Warn().Err(err).Str("test_result", rawResult).Msg("failed to parse submission test result")
+			continue
+		}
+		if !includeHidden && result.IsHidden {
+			continue
+		}
+		if !includeHidden {
+			result = s.sanitizeTestResult(result)
+		}
+		results = append(results, result)
+	}
+
+	sort.SliceStable(results, func(i, j int) bool {
+		return results[i].TestNumber < results[j].TestNumber
+	})
+
+	return results
+}
+
+func (s *SubmissionService) sanitizeTestResult(result domain.SubmissionTestCaseResult) domain.SubmissionTestCaseResult {
+	result.TestCaseID = ""
+	result.TestInput = ""
+	return result
+}
+
+func (s *SubmissionService) countAcceptedResults(results []domain.SubmissionTestCaseResult) int {
+	passed := 0
+	for _, result := range results {
+		if result.Verdict == string(domain.VerdictAccepted) {
+			passed++
+		}
+	}
+	return passed
+}
+
+func (s *SubmissionService) firstFailedResult(results []domain.SubmissionTestCaseResult) *domain.SubmissionTestCaseResult {
+	for _, result := range results {
+		if result.Verdict != string(domain.VerdictAccepted) {
+			failed := result
+			return &failed
+		}
+	}
+	return nil
+}
+
 // formatTestResult creates a comprehensive test result for callback requests
-func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestCaseMapping, status *domain.JudgeSubmissionCallbackRequest, testNum int, isHidden bool) *domain.Judge0FormattedResult {
+func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestCaseMapping, status *domain.JudgeSubmissionCallbackRequest, testNum int, isHidden bool, verdict domain.VerdictStatus) *domain.Judge0FormattedResult {
 	// Parse time string from Judge0 (e.g., "0.002")
 	timeInSeconds, _ := strconv.ParseFloat(status.Time, 64)
 	// Convert to milliseconds
 	timeInMS := timeInSeconds * 1000
 
 	return &domain.Judge0FormattedResult{
+		TestCaseID:         testMapping.TestCaseID,
+		TestNumber:         testNum,
+		Verdict:            string(verdict),
+		StatusID:           status.Status.ID,
+		StatusDescription:  status.Status.Description,
+		TestInput:          strings.TrimSpace(testMapping.TestCaseInput),
 		TestExpectedOutput: strings.TrimSpace(testMapping.TestExpectedOutput),
 		IsHidden:           isHidden,
 		ExecutionTimeMS:    timeInMS,
@@ -323,10 +459,10 @@ func (s *SubmissionService) formatTestResult(testMapping *domain.SubmissionTestC
 	}
 }
 
-// updateSubmissionSuccess updates the submission with success result
-func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submissionID string,
+// updateSubmissionFinal updates the submission after all testcase callbacks arrive.
+func (s *SubmissionService) updateSubmissionFinal(ctx context.Context, submissionID string,
 	verdict domain.VerdictStatus, passed, total, maxPoints int,
-	maxTime float64, maxMemory float64, results []string, tokenList []string) error {
+	maxTime float64, maxMemory float64, results []string, tokenList []string, failedTestCase *string) error {
 
 	now := time.Now()
 	score := submissionScore(passed, total, maxPoints)
@@ -341,7 +477,7 @@ func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submiss
 		MemoryUsedInKB:    maxMemory,
 		TestCaseResults:   results,
 		TokenList:         tokenList,
-		FailedTestCase:    nil, // No failed test case for success
+		FailedTestCase:    failedTestCase,
 		JudgeCompletedAt:  &now,
 	})
 	if err != nil {
@@ -354,41 +490,6 @@ func (s *SubmissionService) updateSubmissionSuccess(ctx context.Context, submiss
 		Int("passed", passed).
 		Int("total", total).
 		Int("score", score).
-		Msg("submission completed")
-
-	return nil
-}
-
-// updateSubmissionError updates submission with an error status
-func (s *SubmissionService) updateSubmissionError(ctx context.Context, submissionID string,
-	verdict domain.VerdictStatus, passed, total int,
-	maxTime float64, maxMemory float64, testResults []string, tokenList []string) error {
-
-	now := time.Now()
-
-	// Update submission result with error details
-	err := s.submissionRepo.UpdateSubmissionResult(ctx, submissionID, &domain.Submission{
-		Verdict:           string(verdict),
-		Score:             0, // No score for failed submissions
-		TestCasesPassed:   passed,
-		TotalTestCases:    total,
-		ExecutionTimeInMS: maxTime,
-		MemoryUsedInKB:    maxMemory,
-		TestCaseResults:   testResults,
-		TokenList:         tokenList,
-		FailedTestCase:    nil,
-		JudgeCompletedAt:  &now,
-	})
-	if err != nil {
-		log.Error().Err(err).Str("submission_id", submissionID).Msg("failed to update error status")
-		return fmt.Errorf("failed to update submission result: %w", err)
-	}
-
-	log.Info().
-		Str("submission_id", submissionID).
-		Str("verdict", string(verdict)).
-		Int("passed", passed).
-		Int("total", total).
 		Msg("submission completed")
 
 	return nil
