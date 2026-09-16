@@ -1029,7 +1029,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/domain.ProblemCreationResponse"
+                                "$ref": "#/definitions/domain.ProblemListResponse"
                             }
                         }
                     },
@@ -1322,7 +1322,7 @@ const docTemplate = `{
             }
         },
         "/api/submission/callback": {
-            "put": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -1428,6 +1428,70 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/submission/system/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get full submission details, including hidden test case data",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Submission"
+                ],
+                "summary": "Get submission details for system",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Submission ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -2396,10 +2460,7 @@ const docTemplate = `{
                 "code",
                 "contest_id",
                 "language",
-                "memory_limit",
-                "problem_id",
-                "time_limit",
-                "user_id"
+                "problem_id"
             ],
             "properties": {
                 "code": {
@@ -2416,16 +2477,7 @@ const docTemplate = `{
                         "java"
                     ]
                 },
-                "memory_limit": {
-                    "type": "integer"
-                },
                 "problem_id": {
-                    "type": "string"
-                },
-                "time_limit": {
-                    "type": "integer"
-                },
-                "user_id": {
                     "type": "string"
                 }
             }
@@ -2708,6 +2760,35 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.ProblemListResponse": {
+            "type": "object",
+            "properties": {
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_previous": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "problems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ProblemCreationResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
                 }
             }
         },

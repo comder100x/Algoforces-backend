@@ -270,22 +270,13 @@ definitions:
         - cpp
         - java
         type: string
-      memory_limit:
-        type: integer
       problem_id:
-        type: string
-      time_limit:
-        type: integer
-      user_id:
         type: string
     required:
     - code
     - contest_id
     - language
-    - memory_limit
     - problem_id
-    - time_limit
-    - user_id
     type: object
   domain.CreateSubmissionResponse:
     properties:
@@ -474,6 +465,25 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  domain.ProblemListResponse:
+    properties:
+      has_next:
+        type: boolean
+      has_previous:
+        type: boolean
+      limit:
+        type: integer
+      page:
+        type: integer
+      problems:
+        items:
+          $ref: '#/definitions/domain.ProblemCreationResponse'
+        type: array
+      total:
+        type: integer
+      total_pages:
+        type: integer
     type: object
   domain.ProblemUpdateRequest:
     properties:
@@ -1493,7 +1503,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/domain.ProblemCreationResponse'
+              $ref: '#/definitions/domain.ProblemListResponse'
             type: array
         "500":
           description: Internal Server Error
@@ -1690,7 +1700,7 @@ paths:
       tags:
       - Submission
   /api/submission/callback:
-    put:
+    post:
       consumes:
       - application/json
       description: Judge a submission callback
@@ -1756,6 +1766,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a new submission
+      tags:
+      - Submission
+  /api/submission/system/{id}:
+    get:
+      description: Get full submission details, including hidden test case data
+      parameters:
+      - description: Submission ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get submission details for system
       tags:
       - Submission
   /api/testcase/{id}:
