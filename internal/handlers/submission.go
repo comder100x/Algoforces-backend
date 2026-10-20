@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"algoforces/internal/domain"
+	"algoforces/internal/middleware"
 	"algoforces/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 type SubmissionHandler struct {
@@ -34,17 +36,27 @@ func NewSubmissionHandler(submissionUseCase domain.SubmissionUseCase) *Submissio
 func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 	var createSubmissionRequest domain.CreateSubmissionRequest
 	if err := ctx.ShouldBindJSON(&createSubmissionRequest); err != nil {
+		log.Error().Err(err).Msg("Invalid submission request body")
 		utils.SendError(ctx, http.StatusBadRequest, err, "Invalid Request Body")
 		return
 	}
 
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		utils.SendError(ctx, http.StatusUnauthorized, err, "User ID not found in token")
+		return
+	}
+	createSubmissionRequest.UserID = userID
+
 	// Call the use case to create a new submission
 	createSubmissionResponse, err := h.submissionUseCase.CreateNewSubmission(ctx.Request.Context(), &createSubmissionRequest)
 	if err != nil {
+		log.Error().Err(err).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Failed to create submission")
 		utils.SendError(ctx, http.StatusInternalServerError, err, "Failed to create submission")
 		return
 	}
 
+	log.Info().Str("submission_id", createSubmissionResponse.UniqueID).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Submission created successfully")
 	utils.SendSuccess(ctx, http.StatusCreated, createSubmissionResponse, "Submission created successfully")
 }
 
@@ -67,8 +79,51 @@ func (h *SubmissionHandler) GetSubmissionDetails(ctx *gin.Context) {
 		return
 	}
 
-	// Call the use case to get submission details
-	submission, err := h.submissionUseCase.GetSubmissionDetails(ctx.Request.Context(), submissionID)
+	submission, err := h.submissionUseCase.GetSubmissionDetails(ctx.Request.Context(), submissionID, false)
+	if err != nil {
+		utils.SendError(ctx, http.StatusNotFound, err, "Submission not found")
+		return
+	}
+
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		utils.SendError(ctx, http.StatusUnauthorized, err, "User ID not found in token")
+		return
+	}
+	userRole, err := middleware.GetUserRole(ctx)
+	if err != nil {
+		utils.SendError(ctx, http.StatusForbidden, err, "User role not found")
+		return
+	}
+	if userRole == "user" && submission.UserID != userID {
+		utils.SendError(ctx, http.StatusForbidden, nil, "You can only view your own submissions")
+		return
+	}
+
+	utils.SendSuccess(ctx, http.StatusOK, submission, "Submission details retrieved successfully")
+}
+
+// GetSubmissionDetailsForSystem godoc
+//
+//	@Summary		Get submission details for system
+//	@Description	Get full submission details, including hidden test case data
+//	@Tags			Submission
+//	@Security		BearerAuth
+//	@Produce		json
+//	@Param			id	path		string	true	"Submission ID"
+//	@Success		200	{object}	utils.SuccessResponse{data=object}
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		403	{object}	utils.ErrorResponse
+//	@Failure		404	{object}	utils.ErrorResponse
+//	@Router			/api/submission/system/{id} [get]
+func (h *SubmissionHandler) GetSubmissionDetailsForSystem(ctx *gin.Context) {
+	submissionID := ctx.Param("id")
+	if submissionID == "" {
+		utils.SendError(ctx, http.StatusBadRequest, nil, "Submission ID is required")
+		return
+	}
+
+	submission, err := h.submissionUseCase.GetSubmissionDetails(ctx.Request.Context(), submissionID, true)
 	if err != nil {
 		utils.SendError(ctx, http.StatusNotFound, err, "Submission not found")
 		return
@@ -114,4 +169,36 @@ func (h *SubmissionHandler) UpdateSubmissionStatus(ctx *gin.Context) {
 	}
 
 	utils.SendSuccess(ctx, http.StatusOK, nil, "Submission status updated successfully")
+}
+
+// JudgeSubmissionCallback godoc
+//
+//	@Summary		Judge submission callback
+//	@Description	Judge a submission callback
+//	@Tags			Submission
+//	@Security		BearerAuth
+//	@Accept			json
+//	@Produce		json
+//	@Param			judgeSubmissionCallbackRequest	body		domain.JudgeSubmissionCallbackRequest	true	"Judge Submission Callback Request"
+//	@Success		200								{object}	utils.SuccessResponse
+//	@Failure		400								{object}	utils.ErrorResponse
+//	@Failure		500								{object}	utils.ErrorResponse
+//	@Router			/api/submission/callback [post]
+func (h *SubmissionHandler) JudgeSubmissionCallback(ctx *gin.Context) {
+	log.Info().Msg("Received submission callback")
+	var judgeSubmissionCallbackRequest domain.JudgeSubmissionCallbackRequest
+	if err := ctx.ShouldBindJSON(&judgeSubmissionCallbackRequest); err != nil {
+		utils.SendError(ctx, http.StatusBadRequest, err, "Invalid Request Body")
+		return
+	}
+
+	// Call the use case to judge submission callback
+	err := h.submissionUseCase.JudgeSubmissionCallback(ctx.Request.Context(), &judgeSubmissionCallbackRequest)
+	if err != nil {
+		utils.SendError(ctx, http.StatusInternalServerError, err, "Failed to judge submission callback")
+		return
+	}
+
+	log.Info().Msg("Submission callback judged successfully")
+	utils.SendSuccess(ctx, http.StatusOK, nil, "Submission callback judged successfully")
 }

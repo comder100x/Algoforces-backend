@@ -3,7 +3,6 @@ package postgres
 import (
 	"algoforces/internal/domain"
 	"context"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -19,14 +18,7 @@ func NewAdminRepository(db *gorm.DB) domain.AdminRepository {
 }
 
 func (r *adminRepository) UpdateByEmail(ctx context.Context, email string, user *domain.User) error {
-	fmt.Printf("DEBUG: Repository UpdateByEmail called for email: %s\n", email)
-	err := r.db.WithContext(ctx).Model(&domain.User{}).Where("email = ?", email).Updates(user).Error
-	if err != nil {
-		fmt.Printf("DEBUG: Repository UpdateByEmail failed: %v\n", err)
-	} else {
-		fmt.Println("DEBUG: Repository UpdateByEmail successful")
-	}
-	return err
+	return r.db.WithContext(ctx).Model(&domain.User{}).Where("email = ?", email).Updates(user).Error
 }
 
 func (r *adminRepository) GetAllUsers(ctx context.Context) ([]domain.User, error) {

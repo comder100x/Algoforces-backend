@@ -127,7 +127,7 @@ func (h *AdminHandler) GetAdmins(c *gin.Context) {
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/api/admin/problem-setters [get]
 func (h *AdminHandler) GetProblemSetters(c *gin.Context) {
-	response, err := h.adminUseCase.GetUsersByRole(c.Request.Context(), "problem_setter")
+	response, err := h.adminUseCase.GetUsersByRole(c.Request.Context(), "problem-setter")
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, err, "Failed to fetch problem setters")
 		return

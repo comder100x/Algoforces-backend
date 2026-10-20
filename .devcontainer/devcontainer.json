@@ -5,14 +5,10 @@
 	"workspaceFolder": "/workspace",
 	"forwardPorts": [
 		8080,
-		5432,
+		5433,
 		6379,
 		2358
 	],
-	"features": {
-		"ghcr.io/devcontainers/features/git:1": {},
-		"ghcr.io/devcontainers/features/github-cli:1": {}
-	},
 	"customizations": {
 		"vscode": {
 			"extensions": [

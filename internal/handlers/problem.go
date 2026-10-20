@@ -5,8 +5,10 @@ import (
 	"algoforces/internal/middleware"
 	"algoforces/internal/utils"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 type ProblemHandler struct {
@@ -36,12 +38,14 @@ func NewProblemHandler(problemUseCase domain.ProblemUseCase) *ProblemHandler {
 func (h *ProblemHandler) CreateProblem(c *gin.Context) {
 	var problemRequest domain.ProblemCreationRequest
 	if err := c.ShouldBindJSON(&problemRequest); err != nil {
+		log.Error().Err(err).Msg("Invalid problem creation request body")
 		utils.SendError(c, http.StatusBadRequest, err, "Invalid request body")
 		return
 	}
 
 	userID, err := middleware.GetUserID(c)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user ID from context")
 		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get user ID")
 		return
 	}
@@ -49,13 +53,16 @@ func (h *ProblemHandler) CreateProblem(c *gin.Context) {
 	problemResponse, err := h.problemUseCase.CreateProblem(c.Request.Context(), &problemRequest, userID)
 	if err != nil {
 		if err.Error() == "user does not have permission to create problems" {
+			log.Warn().Str("user_id", userID).Msg("Unauthorized attempt to create problem")
 			utils.SendError(c, http.StatusForbidden, err, err.Error())
 			return
 		}
+		log.Error().Err(err).Str("user_id", userID).Str("title", problemRequest.Title).Msg("Failed to create problem")
 		utils.SendError(c, http.StatusInternalServerError, err, "Failed to create problem")
 		return
 	}
 
+	log.Info().Str("user_id", userID).Str("problem_id", problemResponse.UniqueID).Str("title", problemRequest.Title).Msg("Problem created successfully")
 	utils.SendSuccess(c, http.StatusCreated, problemResponse, "Problem created successfully")
 }
 
@@ -223,11 +230,18 @@ func (h *ProblemHandler) DeleteProblem(c *gin.Context) {
 //	@Tags			Problem
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Success		200	{array}		domain.ProblemCreationResponse
+//	@Success		200	{array}		domain.ProblemListResponse
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/api/problem/all [get]
 func (h *ProblemHandler) GetAllProblems(c *gin.Context) {
-	problems, err := h.problemUseCase.GetAllProblems(c.Request.Context())
+	pageOffsetStr := c.DefaultQuery("page", "0")
+	pageOffset, err := strconv.Atoi(pageOffsetStr)
+	if err != nil || pageOffset < 0 {
+		utils.SendError(c, http.StatusBadRequest, err, "Invalid page offset")
+		return
+	}
+
+	problems, err := h.problemUseCase.GetAllProblems(c.Request.Context(), pageOffset)
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get problems")
 		return

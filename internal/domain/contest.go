@@ -17,7 +17,7 @@ type Contest struct {
 	Visible        bool           `json:"visible" gorm:"default:false"`
 	CreatedBy      string         `json:"created_by" gorm:"type:uuid;not null"` //refrences User(Id)
 	IsActive       bool           `json:"is_active" gorm:"default:false"`
-	ProblemSetters pq.StringArray `json:"problem_setters" gorm:"type:text[]"`
+	ProblemSetters pq.StringArray `json:"problem-setters" gorm:"type:text[]"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 }
@@ -30,7 +30,7 @@ type CreateContestRequest struct {
 	Duration       int       `json:"duration" binding:"required,gt=0"` // in minutes
 	Visible        bool      `json:"visible"`
 	IsActive       bool      `json:"is_active"`
-	ProblemSetters []string  `json:"problem_setters"`
+	ProblemSetters []string  `json:"problem-setters"`
 }
 
 type CreateContestResponse struct {
@@ -42,7 +42,7 @@ type CreateContestResponse struct {
 	Duration       int       `json:"duration"` // in minutes
 	Visible        bool      `json:"visible"`
 	IsActive       bool      `json:"is_active"`
-	ProblemSetters []string  `json:"problem_setters"`
+	ProblemSetters []string  `json:"problem-setters"`
 	CreatedBy      string    `json:"created_by"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
@@ -56,7 +56,7 @@ type UpdateContestRequest struct {
 	EndTime        time.Time `json:"end_time" binding:"required,gtfield=StartTime"`
 	Duration       int       `json:"duration" binding:"required,gt=0"` // in minutes
 	Visible        bool      `json:"visible"`
-	ProblemSetters []string  `json:"problem_setters"`
+	ProblemSetters []string  `json:"problem-setters"`
 	IsActive       bool      `json:"is_active"`
 }
 
@@ -68,7 +68,7 @@ type UpdateContestResponse struct {
 	EndTime        time.Time `json:"end_time"`
 	Duration       int       `json:"duration"` // in minutes
 	Visible        bool      `json:"visible"`
-	ProblemSetters []string  `json:"problem_setters"`
+	ProblemSetters []string  `json:"problem-setters"`
 	IsActive       bool      `json:"is_active"`
 	CreatedBy      string    `json:"created_by"`
 	CreatedAt      time.Time `json:"created_at"`

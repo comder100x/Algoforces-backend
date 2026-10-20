@@ -8,7 +8,7 @@ definitions:
         enum:
         - admin
         - user
-        - problem_setter
+        - problem-setter
         type: string
     required:
     - email
@@ -38,6 +38,46 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.User'
         description: Returns user info (without password)
+    type: object
+  domain.BulkContestProblemItem:
+    properties:
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+    required:
+    - max_points
+    - order_position
+    - problem_id
+    type: object
+  domain.BulkCreateContestProblemRequest:
+    properties:
+      contest_id:
+        type: string
+      problems:
+        items:
+          $ref: '#/definitions/domain.BulkContestProblemItem'
+        type: array
+    required:
+    - contest_id
+    - problems
+    type: object
+  domain.BulkCreateContestProblemResponse:
+    properties:
+      created_problems:
+        items:
+          $ref: '#/definitions/domain.CreateContestProblemResponse'
+        type: array
+      errors:
+        items:
+          type: string
+        type: array
+      failed_count:
+        type: integer
+      success_count:
+        type: integer
     type: object
   domain.BulkProblemCreationRequest:
     properties:
@@ -80,6 +120,27 @@ definitions:
           $ref: '#/definitions/domain.CreateTestCaseResponse'
         type: array
     type: object
+  domain.ContestProblemDetail:
+    properties:
+      contest_id:
+        type: string
+      created_at:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem:
+        allOf:
+        - $ref: '#/definitions/domain.Problem'
+        description: 'Optional: include problem details'
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
   domain.ContestRegisterRequest:
     properties:
       contest_id:
@@ -107,6 +168,39 @@ definitions:
     required:
     - contest_id
     type: object
+  domain.CreateContestProblemRequest:
+    properties:
+      contest_id:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+    required:
+    - contest_id
+    - max_points
+    - order_position
+    - problem_id
+    type: object
+  domain.CreateContestProblemResponse:
+    properties:
+      contest_id:
+        type: string
+      created_at:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
   domain.CreateContestRequest:
     properties:
       description:
@@ -120,7 +214,7 @@ definitions:
         type: boolean
       name:
         type: string
-      problem_setters:
+      problem-setters:
         items:
           type: string
         type: array
@@ -153,7 +247,7 @@ definitions:
         type: boolean
       name:
         type: string
-      problem_setters:
+      problem-setters:
         items:
           type: string
         type: array
@@ -176,22 +270,13 @@ definitions:
         - cpp
         - java
         type: string
-      memory_limit:
-        type: integer
       problem_id:
-        type: string
-      time_limit:
-        type: integer
-      user_id:
         type: string
     required:
     - code
     - contest_id
     - language
-    - memory_limit
     - problem_id
-    - time_limit
-    - user_id
     type: object
   domain.CreateSubmissionResponse:
     properties:
@@ -246,6 +331,65 @@ definitions:
       unique_id:
         type: string
     type: object
+  domain.DeleteContestProblemResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  domain.GetContestProblemResponse:
+    properties:
+      contest_id:
+        type: string
+      created_at:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  domain.GetContestProblemsResponse:
+    properties:
+      problems:
+        items:
+          $ref: '#/definitions/domain.ContestProblemDetail'
+        type: array
+    type: object
+  domain.Judge0Status:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+    type: object
+  domain.JudgeSubmissionCallbackRequest:
+    properties:
+      compile_output:
+        type: string
+      finished_at:
+        type: string
+      memory:
+        description: Memory in KB
+        type: integer
+      message:
+        type: string
+      status:
+        $ref: '#/definitions/domain.Judge0Status'
+      stderr:
+        type: string
+      stdout:
+        type: string
+      time:
+        description: Judge0 sends time as string (e.g., "0.002")
+        type: string
+      token:
+        type: string
+    type: object
   domain.LoginRequest:
     properties:
       email:
@@ -255,6 +399,28 @@ definitions:
     required:
     - email
     - password
+    type: object
+  domain.Problem:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        description: references User(Id)
+        type: string
+      difficulty:
+        type: string
+      memory_limit_in_mb:
+        type: integer
+      statement:
+        type: string
+      time_limit_in_seconds:
+        type: integer
+      title:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
     type: object
   domain.ProblemCreationRequest:
     properties:
@@ -299,6 +465,25 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  domain.ProblemListResponse:
+    properties:
+      has_next:
+        type: boolean
+      has_previous:
+        type: boolean
+      limit:
+        type: integer
+      page:
+        type: integer
+      problems:
+        items:
+          $ref: '#/definitions/domain.ProblemCreationResponse'
+        type: array
+      total:
+        type: integer
+      total_pages:
+        type: integer
     type: object
   domain.ProblemUpdateRequest:
     properties:
@@ -355,7 +540,7 @@ definitions:
         enum:
         - admin
         - user
-        - problem_setter
+        - problem-setter
         type: string
     required:
     - email
@@ -401,6 +586,38 @@ definitions:
       unique_id:
         type: string
     type: object
+  domain.UpdateContestProblemRequest:
+    properties:
+      contest_id:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+    required:
+    - unique_id
+    type: object
+  domain.UpdateContestProblemResponse:
+    properties:
+      contest_id:
+        type: string
+      created_at:
+        type: string
+      max_points:
+        type: integer
+      order_position:
+        type: integer
+      problem_id:
+        type: string
+      unique_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
   domain.UpdateContestRequest:
     properties:
       description:
@@ -416,7 +633,7 @@ definitions:
         type: boolean
       name:
         type: string
-      problem_setters:
+      problem-setters:
         items:
           type: string
         type: array
@@ -450,7 +667,7 @@ definitions:
         type: boolean
       name:
         type: string
-      problem_setters:
+      problem-setters:
         items:
           type: string
         type: array
@@ -807,6 +1024,190 @@ paths:
       summary: User Signup
       tags:
       - Auth
+  /api/contest-problem/{id}:
+    delete:
+      description: Remove a problem from a contest (admin only)
+      parameters:
+      - description: Contest Problem ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.DeleteContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a contest problem
+      tags:
+      - Contest Problems
+    get:
+      description: Get details of a specific contest problem by its unique ID
+      parameters:
+      - description: Contest Problem ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.GetContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a contest problem by ID
+      tags:
+      - Contest Problems
+  /api/contest-problem/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Add multiple problems to a contest in bulk with order positions
+        and max points (admin or problem-setter only)
+      parameters:
+      - description: Bulk Create Contest Problems Request
+        in: body
+        name: bulkCreateRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.BulkCreateContestProblemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.BulkCreateContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add multiple problems to a contest
+      tags:
+      - Contest Problems
+  /api/contest-problem/contest/{contestId}:
+    get:
+      description: Get all problems associated with a specific contest
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.GetContestProblemsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all problems for a contest
+      tags:
+      - Contest Problems
+  /api/contest-problem/create:
+    post:
+      consumes:
+      - application/json
+      description: Add a problem to a contest with order position and max points (admin
+        or problem-setter only)
+      parameters:
+      - description: Create Contest Problem Request
+        in: body
+        name: createContestProblemRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateContestProblemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.CreateContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a problem to a contest
+      tags:
+      - Contest Problems
+  /api/contest-problem/update:
+    put:
+      consumes:
+      - application/json
+      description: Update an existing contest problem (admin or problem-setter only)
+      parameters:
+      - description: Update Contest Problem Request
+        in: body
+        name: updateContestProblemRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateContestProblemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UpdateContestProblemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a contest problem
+      tags:
+      - Contest Problems
   /api/contest/{id}:
     delete:
       description: Delete a contest by ID (admin only)
@@ -1102,7 +1503,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/domain.ProblemCreationResponse'
+              $ref: '#/definitions/domain.ProblemListResponse'
             type: array
         "500":
           description: Internal Server Error
@@ -1298,6 +1699,38 @@ paths:
       summary: Update submission status
       tags:
       - Submission
+  /api/submission/callback:
+    post:
+      consumes:
+      - application/json
+      description: Judge a submission callback
+      parameters:
+      - description: Judge Submission Callback Request
+        in: body
+        name: judgeSubmissionCallbackRequest
+        required: true
+        schema:
+          $ref: '#/definitions/domain.JudgeSubmissionCallbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Judge submission callback
+      tags:
+      - Submission
   /api/submission/create:
     post:
       consumes:
@@ -1333,6 +1766,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a new submission
+      tags:
+      - Submission
+  /api/submission/system/{id}:
+    get:
+      description: Get full submission details, including hidden test case data
+      parameters:
+      - description: Submission ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get submission details for system
       tags:
       - Submission
   /api/testcase/{id}:

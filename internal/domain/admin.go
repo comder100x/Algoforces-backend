@@ -4,12 +4,12 @@ import "context"
 
 type AddRoleRequest struct {
 	Email string `json:"email" binding:"required,email"`
-	Role  string `json:"role" binding:"required,oneof=admin user problem_setter"`
+	Role  string `json:"role" binding:"required,oneof=admin user problem-setter"`
 }
 
 type RemoveRoleRequest struct {
 	Email string `json:"email" binding:"required,email"`
-	Role  string `json:"role" binding:"required,oneof=admin user problem_setter"`
+	Role  string `json:"role" binding:"required,oneof=admin user problem-setter"`
 }
 
 type AddRoleResponse struct {

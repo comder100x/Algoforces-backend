@@ -46,6 +46,68 @@ func (r *submissionRepository) GetAllTestCasesForProblem(ctx context.Context, pr
 	return testCases, nil
 }
 
+func (r *submissionRepository) GetContestProblemMaxPoints(ctx context.Context, contestID, problemID string) (int, error) {
+	var contestProblem domain.ContestProblems
+	err := r.db.WithContext(ctx).
+		Where("contest_id = ? AND problem_id = ?", contestID, problemID).
+		First(&contestProblem).Error
+	if err != nil {
+		return 0, err
+	}
+	return contestProblem.MaxPoints, nil
+}
+
 func (r *submissionRepository) UpdateSubmissionResult(ctx context.Context, submissionID string, result *domain.Submission) error {
-	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Updates(result).Error
+	updates := map[string]interface{}{
+		"verdict":              result.Verdict,
+		"score":                result.Score,
+		"test_cases_passed":    result.TestCasesPassed,
+		"total_test_cases":     result.TotalTestCases,
+		"execution_time_in_ms": result.ExecutionTimeInMS,
+		"memory_used_in_kb":    result.MemoryUsedInKB,
+		"compilation_error":    result.CompilationError,
+		"runtime_error":        result.RuntimeError,
+		"test_case_results":    result.TestCaseResults,
+		"failed_test_case":     result.FailedTestCase,
+		"judge_completed_at":   result.JudgeCompletedAt,
+		"token_list":           result.TokenList,
+	}
+	return r.db.WithContext(ctx).Model(&domain.Submission{}).Where("unique_id = ?", submissionID).Updates(updates).Error
+}
+
+func (r *submissionRepository) CreateTokenMapping(ctx context.Context, mapping *domain.SubmissionTestCaseMapping) error {
+	return r.db.WithContext(ctx).Create(mapping).Error
+}
+
+func (r *submissionRepository) GetMappingByToken(ctx context.Context, token string) (*domain.SubmissionTestCaseMapping, error) {
+	var mapping domain.SubmissionTestCaseMapping
+	err := r.db.WithContext(ctx).Where("token = ?", token).First(&mapping).Error
+	if err != nil {
+		return nil, err
+	}
+	return &mapping, nil
+}
+
+func (r *submissionRepository) UpdateMappingStatus(ctx context.Context, token string, status string) error {
+	return r.db.WithContext(ctx).Model(&domain.SubmissionTestCaseMapping{}).
+		Where("token = ?", token).
+		Update("status", status).Error
+}
+
+func (r *submissionRepository) GetTestCaseByID(ctx context.Context, testCaseID string) (*domain.TestCase, error) {
+	var testCase domain.TestCase
+	err := r.db.WithContext(ctx).Where("unique_id = ?", testCaseID).First(&testCase).Error
+	if err != nil {
+		return nil, err
+	}
+	return &testCase, nil
+}
+
+func (r *submissionRepository) GetProblemByID(ctx context.Context, problemID string) (*domain.Problem, error) {
+	var problem domain.Problem
+	err := r.db.WithContext(ctx).Where("unique_id = ?", problemID).First(&problem).Error
+	if err != nil {
+		return nil, err
+	}
+	return &problem, nil
 }
