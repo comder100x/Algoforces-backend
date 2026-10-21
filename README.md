@@ -66,7 +66,7 @@ algoforces/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/health` | Health check endpoint |
+| GET | `/api/health` | Health check endpoint |
 | POST | `/api/auth/signup` | User registration |
 | POST | `/api/auth/login` | User authentication |
 
