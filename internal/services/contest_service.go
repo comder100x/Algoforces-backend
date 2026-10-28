@@ -4,20 +4,27 @@ import (
 	"algoforces/internal/domain"
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 type contestService struct {
-	contestRepo domain.ContestRepository
-	userRepo    domain.UserRepository
+	contestRepo         domain.ContestRepository
+	userRepo            domain.UserRepository
+	contestRegisterRepo domain.ContestRegisterRepository
+	contestProblemsRepo domain.ContestProblemsRepository
 }
 
-func NewContestService(contestRepo domain.ContestRepository, userRepo domain.UserRepository) domain.ContestUseCase {
+func NewContestService(contestRepo domain.ContestRepository, userRepo domain.UserRepository, contestRegisterRepo domain.ContestRegisterRepository, contestProblemsRepo domain.ContestProblemsRepository) domain.ContestUseCase {
 	return &contestService{
-		contestRepo: contestRepo,
-		userRepo:    userRepo,
+		contestRepo:         contestRepo,
+		userRepo:            userRepo,
+		contestRegisterRepo: contestRegisterRepo,
+		contestProblemsRepo: contestProblemsRepo,
 	}
 }
 
@@ -205,4 +212,70 @@ func (s *contestService) GetAllContests(ctx context.Context) ([]domain.CreateCon
 	}
 
 	return contestResponses, nil
+}
+
+// Gate checks in order: exists, visible, live, registered or privileged, problem in contest.
+func (s *contestService) CheckSubmissionGate(ctx context.Context, userID, contestID, problemID string) error {
+	if s.contestRegisterRepo == nil || s.contestProblemsRepo == nil {
+		return errors.New("contest gate repositories are not configured")
+	}
+	contest, err := s.contestRepo.GetByID(ctx, contestID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return domain.ErrContestNotFound
+		}
+		return fmt.Errorf("failed to get contest: %w", err)
+	}
+	if contest == nil {
+		return domain.ErrContestNotFound
+	}
+	registration, err := s.contestRegisterRepo.GetRegistrationByUserAndContest(ctx, userID, contestID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			registration = nil
+		} else {
+			return fmt.Errorf("failed to get contest registration: %w", err)
+		}
+	}
+	contestProblems, err := s.contestProblemsRepo.GetContestProblemsByContestID(ctx, contestID)
+	if err != nil {
+		return fmt.Errorf("failed to get contest problems: %w", err)
+	}
+	problemInContest := false
+	for _, contestProblem := range contestProblems {
+		if contestProblem.ProblemID == problemID {
+			problemInContest = true
+			break
+		}
+	}
+	return evaluateSubmissionGate(contest, registration, problemInContest, userID, time.Now())
+}
+
+// Creators and problem setters bypass only the registration check.
+func evaluateSubmissionGate(contest *domain.Contest, registration *domain.ContestRegistration, problemInContest bool, userID string, now time.Time) error {
+	if contest == nil {
+		return domain.ErrContestNotFound
+	}
+	if !contest.Visible {
+		return domain.ErrContestNotVisible
+	}
+	if !contest.IsActive || now.Before(contest.StartTime) || now.After(contest.EndTime) {
+		return domain.ErrContestNotLive
+	}
+	privileged := contest.CreatedBy == userID
+	if !privileged {
+		for _, setterID := range contest.ProblemSetters {
+			if setterID == userID {
+				privileged = true
+				break
+			}
+		}
+	}
+	if !privileged && (registration == nil || registration.Status != "registered") {
+		return domain.ErrNotRegistered
+	}
+	if !problemInContest {
+		return domain.ErrProblemNotInContest
+	}
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"algoforces/internal/domain"
 	"algoforces/internal/middleware"
 	"algoforces/internal/utils"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,9 @@ func NewSubmissionHandler(submissionUseCase domain.SubmissionUseCase) *Submissio
 //	@Param			createSubmissionRequest	body		domain.CreateSubmissionRequest	true	"Create Submission Request"
 //	@Success		201							{object}	utils.SuccessResponse{data=domain.CreateSubmissionResponse}
 //	@Failure		400							{object}	utils.ErrorResponse
+//	@Failure		403							{object}	utils.ErrorResponse
+//	@Failure		404							{object}	utils.ErrorResponse
+//	@Failure		409							{object}	utils.ErrorResponse
 //	@Failure		500							{object}	utils.ErrorResponse
 //	@Router			/api/submission/create [post]
 func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
@@ -52,7 +56,22 @@ func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 	createSubmissionResponse, err := h.submissionUseCase.CreateNewSubmission(ctx.Request.Context(), &createSubmissionRequest)
 	if err != nil {
 		log.Error().Err(err).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Failed to create submission")
-		utils.SendError(ctx, http.StatusInternalServerError, err, "Failed to create submission")
+		// Gate rejections map to client errors, everything else is a 500.
+		// Problem-not-in-contest is a 409, not a 403.
+		switch {
+		case errors.Is(err, domain.ErrContestNotFound):
+			utils.SendError(ctx, http.StatusNotFound, err, "Contest not found")
+		case errors.Is(err, domain.ErrContestNotVisible):
+			utils.SendError(ctx, http.StatusForbidden, err, "Contest is not visible")
+		case errors.Is(err, domain.ErrContestNotLive):
+			utils.SendError(ctx, http.StatusForbidden, err, "Contest is not live")
+		case errors.Is(err, domain.ErrNotRegistered):
+			utils.SendError(ctx, http.StatusForbidden, err, "You are not registered for this contest")
+		case errors.Is(err, domain.ErrProblemNotInContest):
+			utils.SendError(ctx, http.StatusConflict, err, "Problem is not part of this contest")
+		default:
+			utils.SendError(ctx, http.StatusInternalServerError, err, "Failed to create submission")
+		}
 		return
 	}
 

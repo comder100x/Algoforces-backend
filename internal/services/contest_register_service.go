@@ -35,6 +35,17 @@ func (s *contestRegisterService) RegisterContest(ctx context.Context, userID str
 	if err != nil {
 		return nil, errors.New("contest not found")
 	}
+	if contest == nil {
+		return nil, errors.New("contest not found")
+	}
+
+	// Registration needs a visible contest that has not ended.
+	if !contest.Visible {
+		return nil, errors.New("contest is not visible")
+	}
+	if time.Now().After(contest.EndTime) {
+		return nil, errors.New("contest has ended")
+	}
 
 	// Verify contest is open for registration it should be 5 minutes before contest startTime
 	contestStartTime := contest.StartTime

@@ -22,14 +22,16 @@ import (
 
 type SubmissionService struct {
 	submissionRepo domain.SubmissionRepository
+	contestUseCase domain.ContestUseCase
 	apiKey         string
 	baseURL        string
 	httpClient     *http.Client
 }
 
-func NewSubmissionService(submissionRepo domain.SubmissionRepository, apiKey string, baseURL string) domain.SubmissionUseCase {
+func NewSubmissionService(submissionRepo domain.SubmissionRepository, contestUseCase domain.ContestUseCase, apiKey string, baseURL string) domain.SubmissionUseCase {
 	return &SubmissionService{
 		submissionRepo: submissionRepo,
+		contestUseCase: contestUseCase,
 		apiKey:         apiKey,
 		baseURL:        baseURL,
 		httpClient: &http.Client{
@@ -59,6 +61,11 @@ func submissionScore(passed, total, maxPoints int) int {
 }
 
 func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain.CreateSubmissionRequest) (*domain.CreateSubmissionResponse, error) {
+	// Reject before creating the submission row or calling Judge0.
+	if err := s.contestUseCase.CheckSubmissionGate(ctx, req.UserID, req.ContestID, req.ProblemID); err != nil {
+		return nil, err
+	}
+
 	// Get all testCases for the problem
 	testCases, err := s.submissionRepo.GetAllTestCasesForProblem(ctx, req.ProblemID)
 	if err != nil {
