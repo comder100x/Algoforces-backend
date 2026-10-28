@@ -131,15 +131,26 @@ type ContestProblemsRepository interface {
 // contest's problems; handlers map it to HTTP 403.
 var ErrContestProblemsForbidden = errors.New("access denied: contest problems are not visible to you at this time")
 
+// ErrContestNotFound is returned when the referenced contest does not exist;
+// handlers map it to HTTP 404. Merge note: the contest-gates branch defines
+// the same sentinel in domain/submission.go; keep only one at merge time.
+var ErrContestNotFound = errors.New("contest not found")
+
 // Use Case Interface
 type ContestProblemsUseCase interface {
 	CreateContestProblem(ctx context.Context, req *CreateContestProblemRequest) (*CreateContestProblemResponse, error)
-	BulkCreateContestProblems(ctx context.Context, req *BulkCreateContestProblemRequest) (*BulkCreateContestProblemResponse, error)
+	BulkCreateContestProblems(
+		ctx context.Context,
+		req *BulkCreateContestProblemRequest,
+	) (*BulkCreateContestProblemResponse, error)
 	GetContestProblem(ctx context.Context, req *GetContestProblemRequest) (*GetContestProblemResponse, error)
 	GetContestProblems(ctx context.Context, req *GetContestProblemsRequest) (*GetContestProblemsResponse, error)
 	// GetContestProblemsForParticipant returns the contest's problems, ordered
 	// by OrderPosition, without test-case input/output.
-	GetContestProblemsForParticipant(ctx context.Context, contestID, userID, role string) (*GetContestProblemsResponse, error)
+	GetContestProblemsForParticipant(
+		ctx context.Context,
+		contestID, userID, role string,
+	) (*GetContestProblemsResponse, error)
 	UpdateContestProblem(ctx context.Context, req *UpdateContestProblemRequest) (*UpdateContestProblemResponse, error)
 	DeleteContestProblem(ctx context.Context, req *DeleteContestProblemRequest) (*DeleteContestProblemResponse, error)
 }

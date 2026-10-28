@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // GetContestProblemsForParticipant godoc
@@ -20,8 +21,10 @@ import (
 //	@Security		BearerAuth
 //	@Success		200	{object}	domain.GetContestProblemsResponse
 //	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		401	{object}	utils.ErrorResponse
 //	@Failure		403	{object}	utils.ErrorResponse
 //	@Failure		404	{object}	utils.ErrorResponse
+//	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/api/contest/{id}/problems [get]
 func (h *ContestProblemsHandler) GetContestProblemsForParticipant(c *gin.Context) {
 	contestID := c.Param("id")
@@ -32,23 +35,41 @@ func (h *ContestProblemsHandler) GetContestProblemsForParticipant(c *gin.Context
 
 	userID, err := middleware.GetUserID(c)
 	if err != nil {
-		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get user ID")
+		utils.SendError(c, http.StatusUnauthorized, err, "User ID not found in token")
 		return
 	}
 
 	role, err := middleware.GetUserRole(c)
 	if err != nil {
-		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get user role")
+		utils.SendError(c, http.StatusForbidden, err, "User role not found")
 		return
 	}
 
-	response, err := h.contestProblemsUseCase.GetContestProblemsForParticipant(c.Request.Context(), contestID, userID, role)
+	response, err := h.contestProblemsUseCase.GetContestProblemsForParticipant(
+		c.Request.Context(),
+		contestID,
+		userID,
+		role,
+	)
 	if err != nil {
-		if errors.Is(err, domain.ErrContestProblemsForbidden) {
+		switch {
+		case errors.Is(err, domain.ErrContestProblemsForbidden):
 			utils.SendError(c, http.StatusForbidden, err, "You do not have access to this contest's problems")
-			return
+		case errors.Is(err, domain.ErrContestNotFound):
+			utils.SendError(c, http.StatusNotFound, err, "Contest not found")
+		default:
+			log.Error().
+				Err(err).
+				Str("contest_id", contestID).
+				Str("user_id", userID).
+				Msg("Failed to get contest problems for participant")
+			utils.SendError(
+				c,
+				http.StatusInternalServerError,
+				errors.New("internal server error"),
+				"Failed to get contest problems",
+			)
 		}
-		utils.SendError(c, http.StatusNotFound, err, "Failed to get contest problems")
 		return
 	}
 

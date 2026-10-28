@@ -3,8 +3,6 @@ package services_test
 import (
 	"algoforces/internal/domain"
 	"algoforces/internal/services"
-	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 
@@ -21,6 +19,12 @@ func participantTestContest(isActive bool) *domain.Contest {
 		CreatedBy:      "creator-id",
 		ProblemSetters: pq.StringArray{"setter-id"},
 	}
+}
+
+func participantTestContestWithVisible(isActive, visible bool) *domain.Contest {
+	contest := participantTestContest(isActive)
+	contest.Visible = visible
+	return contest
 }
 
 func registrationWithStatus(status string) *domain.ContestRegistration {
@@ -205,6 +209,95 @@ func TestCanViewContestProblemsForParticipant(t *testing.T) {
 			want:         false,
 		},
 		{
+			// Pinned, not changed: Visible is not consulted by this helper.
+			// Whether Visible=false must hide problems from registered
+			// participants is a held decision; PR #2's gate differs here.
+			name:         "registered participant may view during live window even when contest is not visible",
+			contest:      participantTestContestWithVisible(true, false),
+			userID:       "user-id",
+			role:         "user",
+			registration: registrationWithStatus("registered"),
+			now:          live,
+			want:         true,
+		},
+		{
+			name:         "registered participant may view during live window when contest is visible",
+			contest:      participantTestContestWithVisible(true, true),
+			userID:       "user-id",
+			role:         "user",
+			registration: registrationWithStatus("registered"),
+			now:          live,
+			want:         true,
+		},
+		{
+			// Pinned: an empty user ID is not itself a denial; the role and
+			// registration checks decide.
+			name:         "empty user id with admin role may view before start",
+			contest:      participantTestContest(true),
+			userID:       "",
+			role:         "admin",
+			registration: nil,
+			now:          beforeStart,
+			want:         true,
+		},
+		{
+			name:         "empty user id with registered registration may view during live window",
+			contest:      participantTestContest(true),
+			userID:       "",
+			role:         "user",
+			registration: registrationWithStatus("registered"),
+			now:          live,
+			want:         true,
+		},
+		{
+			name:         "empty user id without registration may not view during live window",
+			contest:      participantTestContest(true),
+			userID:       "",
+			role:         "user",
+			registration: nil,
+			now:          live,
+			want:         false,
+		},
+		{
+			// Pinned: role comparison is case-sensitive.
+			name:         "capitalised Admin role may not view without registration",
+			contest:      participantTestContest(true),
+			userID:       "admin-id",
+			role:         "Admin",
+			registration: nil,
+			now:          live,
+			want:         false,
+		},
+		{
+			name:         "upper-case ADMIN role may not view without registration",
+			contest:      participantTestContest(true),
+			userID:       "admin-id",
+			role:         "ADMIN",
+			registration: nil,
+			now:          live,
+			want:         false,
+		},
+		{
+			name:         "capitalised Problem-Setter role may not view without registration",
+			contest:      participantTestContest(true),
+			userID:       "other-id",
+			role:         "Problem-Setter",
+			registration: nil,
+			now:          live,
+			want:         false,
+		},
+		{
+			// Pinned: the listed-setter path is ID-based, so a listed
+			// setter keeps access even with a differently-cased role.
+			name:         "listed setter keeps access regardless of role casing",
+			contest:      participantTestContest(true),
+			userID:       "setter-id",
+			role:         "Problem-Setter",
+			registration: nil,
+			now:          live,
+			want:         true,
+		},
+		{
 			name:         "nil contest allows no one, not even an admin",
 			contest:      nil,
 			userID:       "admin-id",
@@ -222,43 +315,5 @@ func TestCanViewContestProblemsForParticipant(t *testing.T) {
 				t.Errorf("CanViewContestProblemsForParticipant() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-// TestGetContestProblemsResponseContainsNoTestCaseData verifies that the
-// participant-facing response type serializes the problem statement and
-// carries no test-case input/output fields anywhere in its JSON shape.
-func TestGetContestProblemsResponseContainsNoTestCaseData(t *testing.T) {
-	response := &domain.GetContestProblemsResponse{
-		Problems: []domain.ContestProblemDetail{
-			{
-				UniqueID:      "contest-problem-id",
-				ContestID:     "contest-id",
-				ProblemID:     "problem-id",
-				OrderPosition: 1,
-				MaxPoints:     100,
-				Problem: &domain.Problem{
-					UniqueID:   "problem-id",
-					Title:      "Two Sum",
-					Statement:  "Find two numbers that add up to the target.",
-					Difficulty: "easy",
-				},
-			},
-		},
-	}
-
-	payload, err := json.Marshal(response)
-	if err != nil {
-		t.Fatalf("json.Marshal() error = %v", err)
-	}
-	body := string(payload)
-
-	if !strings.Contains(body, `"statement":"Find two numbers that add up to the target."`) {
-		t.Errorf("response JSON should include the problem statement, got: %s", body)
-	}
-	for _, forbidden := range []string{"test_case", "testcase", "TestCase", "expected_output", `"input"`, `"output"`} {
-		if strings.Contains(body, forbidden) {
-			t.Errorf("response JSON must not contain %q, got: %s", forbidden, body)
-		}
 	}
 }

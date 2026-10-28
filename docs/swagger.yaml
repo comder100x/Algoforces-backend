@@ -1116,7 +1116,12 @@ paths:
       - Contest Problems
   /api/contest-problem/contest/{contestId}:
     get:
-      description: Get all problems associated with a specific contest
+      description: 'Get all problems associated with a specific contest, under the
+        same access gate as GET /api/contest/{id}/problems: admins, problem-setters,
+        the contest creator, and the contest''s listed problem-setters may view anytime;
+        registered participants may view only during the live window. Everyone else
+        receives 403. Problems are ordered by order position and include the problem
+        statement; no test-case input/output is returned.'
       parameters:
       - description: Contest ID
         in: path
@@ -1134,8 +1139,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       security:
@@ -1265,6 +1282,52 @@ paths:
       summary: Get Contest Details
       tags:
       - Contest
+  /api/contest/{id}/problems:
+    get:
+      description: Get all problems for a contest as a participant. Admins, problem-setters,
+        the contest creator, and the contest's listed problem-setters may view anytime.
+        Registered participants may view only during the live window (start time to
+        end time, while the contest is active). Everyone else receives 403. Problems
+        are ordered by order position and include the problem statement; no test-case
+        input/output is returned.
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.GetContestProblemsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get contest problems for a participant
+      tags:
+      - Contest Problems
   /api/contest/create:
     post:
       consumes:
