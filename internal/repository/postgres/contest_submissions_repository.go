@@ -7,11 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// NewContestSubmissionsRepository returns the ContestSubmissionsRepository
-// backed by the same submissionRepository struct as NewSubmissionRepository.
-// Both constructors share one stateless struct, so either instance can serve
-// both interfaces; this constructor exists so wiring can depend on the
-// narrower interface without touching submission_repository.go.
+// NewContestSubmissionsRepository returns a ContestSubmissionsRepository
+// backed by the same submissionRepository struct.
 func NewContestSubmissionsRepository(db *gorm.DB) domain.ContestSubmissionsRepository {
 	return &submissionRepository{
 		db: db,
