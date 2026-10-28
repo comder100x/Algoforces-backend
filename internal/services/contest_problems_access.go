@@ -6,22 +6,7 @@ import (
 )
 
 // CanViewContestProblemsForParticipant is the pure access decision for the
-// participant-facing contest-problems view. It performs no I/O so it can be
-// unit-tested with plain structs and no database.
-//
-// Access rules, evaluated in order:
-//
-//  1. Admins and problem-setters (by role) may view anytime.
-//  2. The contest creator and the problem-setters listed on the contest may
-//     view anytime.
-//  3. A registered participant (registration != nil and Status ==
-//     "registered") may view only during the live window, computed directly
-//     from the Contest fields: StartTime <= now <= EndTime and IsActive.
-//  4. Everyone else may not view.
-//
-// The caller must pass the registration row for this user and contest (or
-// nil when there is none); the helper does not re-check that the
-// registration belongs to the user or contest.
+// participant-facing view. Callers pass the registration row, or nil.
 func CanViewContestProblemsForParticipant(contest *domain.Contest, userID, role string, registration *domain.ContestRegistration, now time.Time) bool {
 	if contest == nil {
 		return false

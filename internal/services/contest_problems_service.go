@@ -169,10 +169,7 @@ func (s *contestProblemsService) GetContestProblemsForParticipant(ctx context.Co
 		return nil, errors.New("contest not found")
 	}
 
-	// Look up this user's registration for the contest. A missing row is not
-	// an error here: it just means the caller is unregistered, which the
-	// access decision below treats as "no access" for non-privileged users.
-	// Any other repository error is a real failure and is returned as-is.
+	// A missing row is not an error: it means the caller is unregistered.
 	registration, err := s.contestRegisterRepo.GetRegistrationByUserAndContest(ctx, userID, contestID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -188,9 +185,7 @@ func (s *contestProblemsService) GetContestProblemsForParticipant(ctx context.Co
 		return nil, domain.ErrContestProblemsForbidden
 	}
 
-	// Ordered by OrderPosition ascending by the repository, with the Problem
-	// (including its statement) attached. ContestProblemDetail / Problem
-	// carry no test-case fields, so no test-case input/output can leak here.
+	// No test-case fields are carried, so no test-case data can leak here.
 	problems, err := s.contestProblemsRepo.GetContestProblemsByContestIDWithDetails(ctx, contestID)
 	if err != nil {
 		return nil, err
