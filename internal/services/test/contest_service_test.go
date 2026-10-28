@@ -279,8 +279,8 @@ func TestContestServiceCreateContestOverlap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateContest() non-overlapping error = %v", err)
 	}
-	if created.Status != "upcoming" {
-		t.Errorf("CreateContest() status = %q, want %q", created.Status, "upcoming")
+	if created.Status != domain.ContestStatusUpcoming {
+		t.Errorf("CreateContest() status = %q, want %q", created.Status, domain.ContestStatusUpcoming)
 	}
 }
 
@@ -309,8 +309,8 @@ func TestContestServiceUpdateContestExcludesSelf(t *testing.T) {
 	if updated.Name != "New name" {
 		t.Errorf("UpdateContest() name = %q, want %q", updated.Name, "New name")
 	}
-	if updated.Status != "upcoming" {
-		t.Errorf("UpdateContest() status = %q, want %q", updated.Status, "upcoming")
+	if updated.Status != domain.ContestStatusUpcoming {
+		t.Errorf("UpdateContest() status = %q, want %q", updated.Status, domain.ContestStatusUpcoming)
 	}
 }
 
@@ -456,8 +456,8 @@ func TestContestServiceEndContestSetsInactive(t *testing.T) {
 	if !stored.EndTime.Equal(end) {
 		t.Errorf("EndContest() changed EndTime to %v, want %v", stored.EndTime, end)
 	}
-	if got := domain.ContestStatus(*stored, time.Now()); got != "ended" {
-		t.Errorf("ContestStatus() after EndContest = %q, want %q", got, "ended")
+	if got := domain.DeriveContestStatus(*stored, time.Now()); got != domain.ContestStatusEnded {
+		t.Errorf("DeriveContestStatus() after EndContest = %q, want %q", got, domain.ContestStatusEnded)
 	}
 }
 

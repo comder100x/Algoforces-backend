@@ -22,7 +22,19 @@ type Contest struct {
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
-// ContestStatus derives the lifecycle status of a contest at a given moment.
+// ContestStatus is the derived lifecycle status of a contest. It is a
+// string-based enum so its JSON rendering is unchanged ("upcoming",
+// "live", "ended") while callers compare typed constants instead of
+// raw string literals. There is no status column in the database.
+type ContestStatus string
+
+const (
+	ContestStatusUpcoming ContestStatus = "upcoming"
+	ContestStatusLive     ContestStatus = "live"
+	ContestStatusEnded    ContestStatus = "ended"
+)
+
+// DeriveContestStatus derives the lifecycle status of a contest at a given moment.
 //
 // It is a pure function of the stored fields and the supplied time; there is
 // no status column in the database and callers must pass the time the status
@@ -30,11 +42,11 @@ type Contest struct {
 //
 // The rules, evaluated in order, are:
 //
-//  1. "upcoming" — now is before StartTime, regardless of IsActive. A
+//  1. ContestStatusUpcoming — now is before StartTime, regardless of IsActive. A
 //     contest activated early still reads as upcoming until it starts.
-//  2. "ended" — now is after EndTime, regardless of IsActive.
-//  3. "live" — StartTime <= now <= EndTime and IsActive is true.
-//  4. "ended" — otherwise: the start time has been reached
+//  2. ContestStatusEnded — now is after EndTime, regardless of IsActive.
+//  3. ContestStatusLive — StartTime <= now <= EndTime and IsActive is true.
+//  4. ContestStatusEnded — otherwise: the start time has been reached
 //     (StartTime <= now <= EndTime) but IsActive is false, i.e. the contest
 //     was ended (EndContest sets IsActive=false without moving EndTime) or
 //     was never started. A started-but-inactive contest therefore reports
@@ -43,17 +55,21 @@ type Contest struct {
 // Boundary behaviour: now == StartTime with IsActive=true is "live", and
 // now == EndTime with IsActive=true is "live"; with IsActive=false both
 // boundaries are "ended".
-func ContestStatus(contest Contest, now time.Time) string {
+//
+// NOTE: the helper is named DeriveContestStatus, not ContestStatus:
+// Go does not allow a type and a function to share the name
+// ContestStatus, and the type name is the one the review asked for.
+func DeriveContestStatus(contest Contest, now time.Time) ContestStatus {
 	if now.Before(contest.StartTime) {
-		return "upcoming"
+		return ContestStatusUpcoming
 	}
 	if now.After(contest.EndTime) {
-		return "ended"
+		return ContestStatusEnded
 	}
 	if contest.IsActive {
-		return "live"
+		return ContestStatusLive
 	}
-	return "ended"
+	return ContestStatusEnded
 }
 
 type CreateContestRequest struct {
@@ -68,19 +84,19 @@ type CreateContestRequest struct {
 }
 
 type CreateContestResponse struct {
-	Id             string    `json:"id"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description"`
-	StartTime      time.Time `json:"start_time"`
-	EndTime        time.Time `json:"end_time"`
-	Duration       int       `json:"duration"` // in minutes
-	Visible        bool      `json:"visible"`
-	IsActive       bool      `json:"is_active"`
-	Status         string    `json:"status"`
-	ProblemSetters []string  `json:"problem-setters"`
-	CreatedBy      string    `json:"created_by"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	Id             string        `json:"id"`
+	Name           string        `json:"name"`
+	Description    string        `json:"description"`
+	StartTime      time.Time     `json:"start_time"`
+	EndTime        time.Time     `json:"end_time"`
+	Duration       int           `json:"duration"` // in minutes
+	Visible        bool          `json:"visible"`
+	IsActive       bool          `json:"is_active"`
+	Status         ContestStatus `json:"status"`
+	ProblemSetters []string      `json:"problem-setters"`
+	CreatedBy      string        `json:"created_by"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
 }
 
 type UpdateContestRequest struct {
@@ -96,19 +112,19 @@ type UpdateContestRequest struct {
 }
 
 type UpdateContestResponse struct {
-	Id             string    `json:"id"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description"`
-	StartTime      time.Time `json:"start_time"`
-	EndTime        time.Time `json:"end_time"`
-	Duration       int       `json:"duration"` // in minutes
-	Visible        bool      `json:"visible"`
-	ProblemSetters []string  `json:"problem-setters"`
-	IsActive       bool      `json:"is_active"`
-	Status         string    `json:"status"`
-	CreatedBy      string    `json:"created_by"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	Id             string        `json:"id"`
+	Name           string        `json:"name"`
+	Description    string        `json:"description"`
+	StartTime      time.Time     `json:"start_time"`
+	EndTime        time.Time     `json:"end_time"`
+	Duration       int           `json:"duration"` // in minutes
+	Visible        bool          `json:"visible"`
+	ProblemSetters []string      `json:"problem-setters"`
+	IsActive       bool          `json:"is_active"`
+	Status         ContestStatus `json:"status"`
+	CreatedBy      string        `json:"created_by"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
 }
 
 type DeleteContestRequest struct {

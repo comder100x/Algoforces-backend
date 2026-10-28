@@ -76,7 +76,7 @@ func (s *contestService) CreateContest(ctx context.Context, req *domain.CreateCo
 		Duration:       contest.Duration,
 		Visible:        contest.Visible,
 		IsActive:       contest.IsActive,
-		Status:         domain.ContestStatus(*contest, time.Now()),
+		Status:         domain.DeriveContestStatus(*contest, time.Now()),
 		ProblemSetters: contest.ProblemSetters,
 		CreatedBy:      contest.CreatedBy,
 		CreatedAt:      contest.CreatedAt,
@@ -145,7 +145,7 @@ func (s *contestService) UpdateContest(ctx context.Context, req *domain.UpdateCo
 		Duration:       contest.Duration,
 		Visible:        contest.Visible,
 		IsActive:       contest.IsActive,
-		Status:         domain.ContestStatus(*contest, time.Now()),
+		Status:         domain.DeriveContestStatus(*contest, time.Now()),
 		ProblemSetters: contest.ProblemSetters,
 		CreatedBy:      contest.CreatedBy,
 		CreatedAt:      contest.CreatedAt,
@@ -170,7 +170,7 @@ func (s *contestService) GetContestDetails(ctx context.Context, id string) (*dom
 		Duration:       contest.Duration,
 		Visible:        contest.Visible,
 		IsActive:       contest.IsActive,
-		Status:         domain.ContestStatus(*contest, time.Now()),
+		Status:         domain.DeriveContestStatus(*contest, time.Now()),
 		ProblemSetters: contest.ProblemSetters,
 		CreatedBy:      contest.CreatedBy,
 		CreatedAt:      contest.CreatedAt,
@@ -187,7 +187,7 @@ func (s *contestService) DeleteContest(ctx context.Context, req *domain.DeleteCo
 	}
 
 	// A live contest cannot be deleted.
-	if domain.ContestStatus(*contest, time.Now()) == "live" {
+	if domain.DeriveContestStatus(*contest, time.Now()) == domain.ContestStatusLive {
 		return errors.New("cannot delete a live contest")
 	}
 
@@ -223,7 +223,7 @@ func (s *contestService) StartContest(ctx context.Context, id string) error {
 }
 
 // EndContest deactivates a contest. EndTime is left unchanged; the derived
-// status helper treats a started-but-inactive contest as "ended".
+// status helper treats a started-but-inactive contest as ContestStatusEnded.
 func (s *contestService) EndContest(ctx context.Context, id string) error {
 	contest, err := s.contestRepo.GetByID(ctx, id)
 	if err != nil {
@@ -252,7 +252,7 @@ func (s *contestService) GetAllContests(ctx context.Context) ([]domain.CreateCon
 			Duration:       contest.Duration,
 			Visible:        contest.Visible,
 			IsActive:       contest.IsActive,
-			Status:         domain.ContestStatus(contest, time.Now()),
+			Status:         domain.DeriveContestStatus(contest, time.Now()),
 			ProblemSetters: contest.ProblemSetters,
 			CreatedBy:      contest.CreatedBy,
 			CreatedAt:      contest.CreatedAt,
@@ -280,7 +280,7 @@ func (s *contestService) GetVisibleContests(ctx context.Context) ([]domain.Creat
 			Duration:       contest.Duration,
 			Visible:        contest.Visible,
 			IsActive:       contest.IsActive,
-			Status:         domain.ContestStatus(contest, time.Now()),
+			Status:         domain.DeriveContestStatus(contest, time.Now()),
 			ProblemSetters: contest.ProblemSetters,
 			CreatedBy:      contest.CreatedBy,
 			CreatedAt:      contest.CreatedAt,
