@@ -22,10 +22,8 @@ type Contest struct {
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
-// ContestStatus is the derived lifecycle status of a contest. It is a
-// string-based enum so its JSON rendering is unchanged ("upcoming",
-// "live", "ended") while callers compare typed constants instead of
-// raw string literals. There is no status column in the database.
+// ContestStatus is the derived lifecycle status of a contest.
+// String-based so its JSON rendering is unchanged; there is no status column.
 type ContestStatus string
 
 const (
@@ -34,31 +32,8 @@ const (
 	ContestStatusEnded    ContestStatus = "ended"
 )
 
-// DeriveContestStatus derives the lifecycle status of a contest at a given moment.
-//
-// It is a pure function of the stored fields and the supplied time; there is
-// no status column in the database and callers must pass the time the status
-// is evaluated at (services pass time.Now()).
-//
-// The rules, evaluated in order, are:
-//
-//  1. ContestStatusUpcoming — now is before StartTime, regardless of IsActive. A
-//     contest activated early still reads as upcoming until it starts.
-//  2. ContestStatusEnded — now is after EndTime, regardless of IsActive.
-//  3. ContestStatusLive — StartTime <= now <= EndTime and IsActive is true.
-//  4. ContestStatusEnded — otherwise: the start time has been reached
-//     (StartTime <= now <= EndTime) but IsActive is false, i.e. the contest
-//     was ended (EndContest sets IsActive=false without moving EndTime) or
-//     was never started. A started-but-inactive contest therefore reports
-//     as ended.
-//
-// Boundary behaviour: now == StartTime with IsActive=true is "live", and
-// now == EndTime with IsActive=true is "live"; with IsActive=false both
-// boundaries are "ended".
-//
-// NOTE: the helper is named DeriveContestStatus, not ContestStatus:
-// Go does not allow a type and a function to share the name
-// ContestStatus, and the type name is the one the review asked for.
+// DeriveContestStatus returns the lifecycle status of a contest at now.
+// A started-but-inactive contest reports as ended.
 func DeriveContestStatus(contest Contest, now time.Time) ContestStatus {
 	if now.Before(contest.StartTime) {
 		return ContestStatusUpcoming

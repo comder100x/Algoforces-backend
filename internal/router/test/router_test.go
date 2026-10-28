@@ -62,11 +62,8 @@ func newTestEngine() *gin.Engine {
 	})
 }
 
-// TestGetVisibleContestsRequiresAuthButNoRoleGate encodes the corrected
-// review outcome for GET /api/contest/all: authentication IS required,
-// but after authentication every role may access it — there is no role
-// gate on this route. It runs against the real gin engine via httptest;
-// no live server or database is involved.
+// TestGetVisibleContestsRequiresAuthButNoRoleGate checks GET /api/contest/all
+// requires auth but has no role gate.
 func TestGetVisibleContestsRequiresAuthButNoRoleGate(t *testing.T) {
 	engine := newTestEngine()
 
