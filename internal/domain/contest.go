@@ -2,13 +2,14 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/lib/pq"
 )
 
 type Contest struct {
-	Id             string         `json:"id" gorm:"primaryKey";type:uuid"`
+	Id             string         `json:"id" gorm:"primaryKey;type:uuid"`
 	Name           string         `json:"name" gorm:"not null"`
 	Description    string         `json:"description" gorm:""`
 	StartTime      time.Time      `json:"start_time" gorm:"not null"`
@@ -30,6 +31,20 @@ const (
 	ContestStatusUpcoming ContestStatus = "upcoming"
 	ContestStatusLive     ContestStatus = "live"
 	ContestStatusEnded    ContestStatus = "ended"
+)
+
+// Contest lifecycle sentinels. Handlers match these with errors.Is;
+// services return them unwrapped or wrapped with %w.
+var (
+	ErrContestNotFound              = errors.New("contest not found")
+	ErrContestEnded                 = errors.New("cannot start a contest that has ended")
+	ErrContestHasNoProblems         = errors.New("contest must have at least one problem before it can be started")
+	ErrContestLive                  = errors.New("cannot delete a live contest")
+	ErrContestOverlap               = errors.New("already a contest exists in the given time window")
+	ErrContestTimeLocked            = errors.New("cannot change start time or end time after the contest has started")
+	ErrContestProblemsNotConfigured = errors.New("contest problems repository is not configured")
+	ErrProblemSetterNotFound        = errors.New("problem setter user not found")
+	ErrProblemSetterNotAuthorized   = errors.New("user is not authorized as problem setter")
 )
 
 // DeriveContestStatus returns the lifecycle status of a contest at now.
@@ -112,7 +127,11 @@ type ContestRepository interface {
 	UpdateContest(ctx context.Context, contest *Contest) error
 	DeleteContest(ctx context.Context, id string) error
 	CheckContestInTimeWindow(ctx context.Context, startTime, endTime time.Time) ([]Contest, error)
-	CheckContestInTimeWindowExcluding(ctx context.Context, startTime, endTime time.Time, excludeID string) ([]Contest, error)
+	CheckContestInTimeWindowExcluding(
+		ctx context.Context,
+		startTime, endTime time.Time,
+		excludeID string,
+	) ([]Contest, error)
 	GetAllContests(ctx context.Context) ([]Contest, error)
 	GetVisibleContests(ctx context.Context) ([]Contest, error)
 }

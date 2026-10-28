@@ -161,6 +161,16 @@ definitions:
       user_id:
         type: string
     type: object
+  domain.ContestStatus:
+    enum:
+    - upcoming
+    - live
+    - ended
+    type: string
+    x-enum-varnames:
+    - ContestStatusUpcoming
+    - ContestStatusLive
+    - ContestStatusEnded
   domain.ContestUnregisterRequest:
     properties:
       contest_id:
@@ -253,6 +263,8 @@ definitions:
         type: array
       start_time:
         type: string
+      status:
+        $ref: '#/definitions/domain.ContestStatus'
       updated_at:
         type: string
       visible:
@@ -673,6 +685,8 @@ definitions:
         type: array
       start_time:
         type: string
+      status:
+        $ref: '#/definitions/domain.ContestStatus'
       updated_at:
         type: string
       visible:
@@ -1228,6 +1242,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -1260,9 +1282,115 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Contest Details
+      tags:
+      - Contest
+  /api/contest/{id}/end:
+    post:
+      description: End a contest (admin or problem-setter only). Sets the contest
+        inactive; its end time is left unchanged.
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: End a Contest
+      tags:
+      - Contest
+  /api/contest/{id}/start:
+    post:
+      description: Start a contest (admin or problem-setter only). The contest must
+        not have ended and must have at least one problem.
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start a Contest
+      tags:
+      - Contest
+  /api/contest/all:
+    get:
+      description: Get all visible contests, ordered by start time (any authenticated
+        user)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.CreateContestResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Visible Contests
       tags:
       - Contest
   /api/contest/create:
@@ -1286,6 +1414,14 @@ paths:
             $ref: '#/definitions/domain.CreateContestResponse'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
         "500":
@@ -1403,6 +1539,14 @@ paths:
             $ref: '#/definitions/domain.UpdateContestResponse'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
         "500":

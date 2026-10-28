@@ -11,48 +11,68 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // fakeContestRepository is an in-memory domain.ContestRepository. Its
 // overlap check mirrors the postgres SQL (start_time < end AND
 // end_time > start, plus id <> excludeID when excludeID is non-empty).
 type fakeContestRepository struct {
-	contests []domain.Contest
+	contests      []domain.Contest
+	checkErr      error
+	createErr     error
+	getErr        error
+	updateErr     error
+	deleteErr     error
+	getAllErr     error
+	getVisibleErr error
 }
 
 func (f *fakeContestRepository) CreateContest(_ context.Context, contest *domain.Contest) error {
+	if f.createErr != nil {
+		return f.createErr
+	}
 	f.contests = append(f.contests, *contest)
 	return nil
 }
 
 func (f *fakeContestRepository) GetByID(_ context.Context, id string) (*domain.Contest, error) {
+	if f.getErr != nil {
+		return nil, f.getErr
+	}
 	for _, c := range f.contests {
 		if c.Id == id {
 			contest := c
 			return &contest, nil
 		}
 	}
-	return nil, errors.New("contest not found")
+	return nil, gorm.ErrRecordNotFound
 }
 
 func (f *fakeContestRepository) UpdateContest(_ context.Context, contest *domain.Contest) error {
+	if f.updateErr != nil {
+		return f.updateErr
+	}
 	for i, c := range f.contests {
 		if c.Id == contest.Id {
 			f.contests[i] = *contest
 			return nil
 		}
 	}
-	return errors.New("contest not found")
+	return gorm.ErrRecordNotFound
 }
 
 func (f *fakeContestRepository) DeleteContest(_ context.Context, id string) error {
+	if f.deleteErr != nil {
+		return f.deleteErr
+	}
 	for i, c := range f.contests {
 		if c.Id == id {
 			f.contests = append(f.contests[:i], f.contests[i+1:]...)
 			return nil
 		}
 	}
-	return errors.New("contest not found")
+	return gorm.ErrRecordNotFound
 }
 
 func (f *fakeContestRepository) CheckContestInTimeWindow(ctx context.Context, startTime, endTime time.Time) ([]domain.Contest, error) {
@@ -60,6 +80,9 @@ func (f *fakeContestRepository) CheckContestInTimeWindow(ctx context.Context, st
 }
 
 func (f *fakeContestRepository) CheckContestInTimeWindowExcluding(_ context.Context, startTime, endTime time.Time, excludeID string) ([]domain.Contest, error) {
+	if f.checkErr != nil {
+		return nil, f.checkErr
+	}
 	var overlapping []domain.Contest
 	for _, c := range f.contests {
 		if excludeID != "" && c.Id == excludeID {
@@ -73,12 +96,18 @@ func (f *fakeContestRepository) CheckContestInTimeWindowExcluding(_ context.Cont
 }
 
 func (f *fakeContestRepository) GetAllContests(_ context.Context) ([]domain.Contest, error) {
+	if f.getAllErr != nil {
+		return nil, f.getAllErr
+	}
 	contests := make([]domain.Contest, len(f.contests))
 	copy(contests, f.contests)
 	return contests, nil
 }
 
 func (f *fakeContestRepository) GetVisibleContests(_ context.Context) ([]domain.Contest, error) {
+	if f.getVisibleErr != nil {
+		return nil, f.getVisibleErr
+	}
 	var visible []domain.Contest
 	for _, c := range f.contests {
 		if c.Visible {
@@ -91,7 +120,8 @@ func (f *fakeContestRepository) GetVisibleContests(_ context.Context) ([]domain.
 
 // fakeUserRepository is an in-memory domain.UserRepository.
 type fakeUserRepository struct {
-	users map[string]*domain.User
+	users      map[string]*domain.User
+	getByIDErr error
 }
 
 func newFakeUserRepository(users ...*domain.User) *fakeUserRepository {
@@ -113,14 +143,17 @@ func (f *fakeUserRepository) GetByEmail(_ context.Context, email string) (*domai
 			return u, nil
 		}
 	}
-	return nil, errors.New("user not found")
+	return nil, gorm.ErrRecordNotFound
 }
 
 func (f *fakeUserRepository) GetByID(_ context.Context, id string) (*domain.User, error) {
+	if f.getByIDErr != nil {
+		return nil, f.getByIDErr
+	}
 	if u, ok := f.users[id]; ok {
 		return u, nil
 	}
-	return nil, errors.New("user not found")
+	return nil, gorm.ErrRecordNotFound
 }
 
 func (f *fakeUserRepository) UpdateByID(_ context.Context, id string, user *domain.User) error {
@@ -133,6 +166,7 @@ func (f *fakeUserRepository) UpdateByID(_ context.Context, id string, user *doma
 // the contest service, the rest are stubs.
 type fakeContestProblemsRepository struct {
 	problems []domain.ContestProblems
+	err      error
 }
 
 func (f *fakeContestProblemsRepository) CreateContestProblem(_ context.Context, contestProblem *domain.ContestProblems) error {
@@ -151,6 +185,9 @@ func (f *fakeContestProblemsRepository) GetContestProblemByID(_ context.Context,
 }
 
 func (f *fakeContestProblemsRepository) GetContestProblemsByContestID(_ context.Context, contestID string) ([]domain.ContestProblems, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
 	var problems []domain.ContestProblems
 	for _, p := range f.problems {
 		if p.ContestID == contestID {
@@ -513,5 +550,309 @@ func TestContestServiceGetVisibleContests(t *testing.T) {
 	if contests[0].Id != earlyVisibleID || contests[1].Id != lateVisibleID {
 		t.Errorf("GetVisibleContests() order = [%s %s], want [%s %s] (StartTime ascending)",
 			contests[0].Id, contests[1].Id, earlyVisibleID, lateVisibleID)
+	}
+}
+
+func TestContestServiceGetContestDetails(t *testing.T) {
+	ctx := context.Background()
+	svc, contestRepo, _, _ := newContestTestService()
+	now := time.Now()
+	contestID := uuid.New().String()
+	if err := contestRepo.CreateContest(ctx, &domain.Contest{
+		Id: contestID, Name: "Details",
+		StartTime: now.Add(2 * time.Hour), EndTime: now.Add(4 * time.Hour),
+		Duration: 120, Visible: true,
+	}); err != nil {
+		t.Fatalf("CreateContest() error = %v", err)
+	}
+
+	got, err := svc.GetContestDetails(ctx, contestID)
+	if err != nil {
+		t.Fatalf("GetContestDetails() error = %v", err)
+	}
+	if got.Id != contestID || got.Name != "Details" || got.Status != domain.ContestStatusUpcoming {
+		t.Errorf("GetContestDetails() = %+v, want id %q name %q status upcoming", got, contestID, "Details")
+	}
+
+	_, err = svc.GetContestDetails(ctx, uuid.New().String())
+	if !errors.Is(err, domain.ErrContestNotFound) {
+		t.Errorf("GetContestDetails() missing error = %v, want errors.Is ErrContestNotFound", err)
+	}
+
+	contestRepo.getErr = errors.New("db down")
+	_, err = svc.GetContestDetails(ctx, contestID)
+	if errors.Is(err, domain.ErrContestNotFound) || err == nil || !strings.Contains(err.Error(), "failed to get contest") {
+		t.Errorf("GetContestDetails() repo error = %v, want wrapped non-sentinel error", err)
+	}
+}
+
+func TestContestServiceListContestsEmptyAndErrors(t *testing.T) {
+	ctx := context.Background()
+	svc, contestRepo, _, _ := newContestTestService()
+
+	all, err := svc.GetAllContests(ctx)
+	if err != nil {
+		t.Fatalf("GetAllContests() error = %v", err)
+	}
+	if all == nil {
+		t.Error("GetAllContests() on empty store returned nil, want non-nil empty slice (JSON [])")
+	}
+	visible, err := svc.GetVisibleContests(ctx)
+	if err != nil {
+		t.Fatalf("GetVisibleContests() error = %v", err)
+	}
+	if visible == nil {
+		t.Error("GetVisibleContests() on empty store returned nil, want non-nil empty slice (JSON [])")
+	}
+
+	contestRepo.getAllErr = errors.New("db down")
+	if _, err := svc.GetAllContests(ctx); err == nil || !strings.Contains(err.Error(), "failed to get contests") {
+		t.Errorf("GetAllContests() repo error = %v, want wrapped error", err)
+	}
+	contestRepo.getVisibleErr = errors.New("db down")
+	if _, err := svc.GetVisibleContests(ctx); err == nil || !strings.Contains(err.Error(), "failed to get contests") {
+		t.Errorf("GetVisibleContests() repo error = %v, want wrapped error", err)
+	}
+}
+
+func TestContestServiceCreateContestRepoErrors(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	req := func() *domain.CreateContestRequest {
+		return &domain.CreateContestRequest{
+			Name: "New", StartTime: now.Add(2 * time.Hour), EndTime: now.Add(4 * time.Hour), Duration: 120,
+		}
+	}
+
+	svc, contestRepo, userRepo, _ := newContestTestService()
+	contestRepo.checkErr = errors.New("db down")
+	if _, err := svc.CreateContest(ctx, req(), "admin-id"); err == nil || !strings.Contains(err.Error(), "failed to check contest time window") {
+		t.Errorf("CreateContest() window error = %v, want wrapped error", err)
+	}
+	contestRepo.checkErr = nil
+
+	contestRepo.createErr = errors.New("db down")
+	if _, err := svc.CreateContest(ctx, req(), "admin-id"); err == nil || !strings.Contains(err.Error(), "failed to create contest") {
+		t.Errorf("CreateContest() create error = %v, want wrapped error", err)
+	}
+	contestRepo.createErr = nil
+
+	_, err := svc.CreateContest(ctx, &domain.CreateContestRequest{
+		Name: "Ghost setter", StartTime: now.Add(2 * time.Hour), EndTime: now.Add(4 * time.Hour),
+		Duration: 120, ProblemSetters: []string{"no-such-user"},
+	}, "admin-id")
+	if !errors.Is(err, domain.ErrProblemSetterNotFound) {
+		t.Errorf("CreateContest() unknown setter error = %v, want errors.Is ErrProblemSetterNotFound", err)
+	}
+
+	userRepo.getByIDErr = errors.New("db down")
+	_, err = svc.CreateContest(ctx, &domain.CreateContestRequest{
+		Name: "Setter lookup fails", StartTime: now.Add(2 * time.Hour), EndTime: now.Add(4 * time.Hour),
+		Duration: 120, ProblemSetters: []string{"setter-id"},
+	}, "admin-id")
+	if err == nil || errors.Is(err, domain.ErrProblemSetterNotFound) || !strings.Contains(err.Error(), "failed to get problem setter user") {
+		t.Errorf("CreateContest() setter lookup error = %v, want wrapped non-sentinel error", err)
+	}
+	userRepo.getByIDErr = nil
+
+	regular := &domain.User{Id: "regular-id", Email: "regular@example.com", Role: "user", Username: "regular"}
+	if err := userRepo.Create(ctx, regular); err != nil {
+		t.Fatalf("Create() user error = %v", err)
+	}
+	_, err = svc.CreateContest(ctx, &domain.CreateContestRequest{
+		Name: "Regular setter", StartTime: now.Add(2 * time.Hour), EndTime: now.Add(4 * time.Hour),
+		Duration: 120, ProblemSetters: []string{"regular-id"},
+	}, "admin-id")
+	if !errors.Is(err, domain.ErrProblemSetterNotAuthorized) {
+		t.Errorf("CreateContest() wrong-role setter error = %v, want errors.Is ErrProblemSetterNotAuthorized", err)
+	}
+}
+
+func TestContestServiceUpdateContestErrors(t *testing.T) {
+	ctx := context.Background()
+	svc, contestRepo, _, _ := newContestTestService()
+	now := time.Now()
+
+	_, err := svc.UpdateContest(ctx, &domain.UpdateContestRequest{
+		Id: uuid.New().String(), Name: "Missing",
+		StartTime: now.Add(2 * time.Hour), EndTime: now.Add(4 * time.Hour), Duration: 120,
+	})
+	if !errors.Is(err, domain.ErrContestNotFound) {
+		t.Errorf("UpdateContest() missing error = %v, want errors.Is ErrContestNotFound", err)
+	}
+
+	contestID := uuid.New().String()
+	start := now.Add(-time.Hour)
+	end := now.Add(time.Hour)
+	if err := contestRepo.CreateContest(ctx, &domain.Contest{
+		Id: contestID, Name: "Started",
+		StartTime: start, EndTime: end, Duration: 120, IsActive: true,
+	}); err != nil {
+		t.Fatalf("CreateContest() error = %v", err)
+	}
+
+	// End-time-only change after the start is rejected, like a start change.
+	_, err = svc.UpdateContest(ctx, &domain.UpdateContestRequest{
+		Id: contestID, Name: "Started",
+		StartTime: start, EndTime: now.Add(2 * time.Hour), Duration: 120, IsActive: true,
+	})
+	if !errors.Is(err, domain.ErrContestTimeLocked) {
+		t.Errorf("UpdateContest() end-change error = %v, want errors.Is ErrContestTimeLocked", err)
+	}
+
+	contestRepo.updateErr = errors.New("db down")
+	_, err = svc.UpdateContest(ctx, &domain.UpdateContestRequest{
+		Id: contestID, Name: "Renamed",
+		StartTime: start, EndTime: end, Duration: 120, IsActive: true,
+	})
+	if err == nil || !strings.Contains(err.Error(), "failed to update contest") {
+		t.Errorf("UpdateContest() update error = %v, want wrapped error", err)
+	}
+}
+
+func TestContestServiceStartContestErrors(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	if err := services.NewContestService(
+		&fakeContestRepository{},
+		newFakeUserRepository(),
+		nil,
+	).StartContest(ctx, uuid.New().String()); err == nil || !strings.Contains(err.Error(), "contest not found") {
+		t.Errorf("StartContest() on empty store error = %v, want not-found error", err)
+	}
+
+	svc, contestRepo, _, problemsRepo := newContestTestService()
+	contestID := uuid.New().String()
+	if err := contestRepo.CreateContest(ctx, &domain.Contest{
+		Id: contestID, Name: "No problems repo",
+		StartTime: now.Add(time.Hour), EndTime: now.Add(3 * time.Hour), Duration: 120,
+	}); err != nil {
+		t.Fatalf("CreateContest() error = %v", err)
+	}
+	nilProblemsSvc := services.NewContestService(contestRepo, newFakeUserRepository(), nil)
+	if err := nilProblemsSvc.StartContest(ctx, contestID); !errors.Is(err, domain.ErrContestProblemsNotConfigured) {
+		t.Errorf("StartContest() nil problems repo error = %v, want errors.Is ErrContestProblemsNotConfigured", err)
+	}
+
+	problemsRepo.err = errors.New("db down")
+	if err := svc.StartContest(ctx, contestID); err == nil || !strings.Contains(err.Error(), "failed to get contest problems") {
+		t.Errorf("StartContest() problems error = %v, want wrapped error", err)
+	}
+	problemsRepo.err = nil
+
+	contestRepo.updateErr = errors.New("db down")
+	if err := problemsRepo.CreateContestProblem(ctx, &domain.ContestProblems{
+		UniqueID: uuid.New().String(), ContestID: contestID, ProblemID: uuid.New().String(), OrderPosition: 1, MaxPoints: 100,
+	}); err != nil {
+		t.Fatalf("CreateContestProblem() error = %v", err)
+	}
+	if err := svc.StartContest(ctx, contestID); err == nil || !strings.Contains(err.Error(), "failed to update contest") {
+		t.Errorf("StartContest() update error = %v, want wrapped error", err)
+	}
+}
+
+func TestContestServiceStartContestRestartActiveIsIdempotent(t *testing.T) {
+	ctx := context.Background()
+	svc, contestRepo, _, problemsRepo := newContestTestService()
+	now := time.Now()
+	contestID := uuid.New().String()
+	if err := contestRepo.CreateContest(ctx, &domain.Contest{
+		Id: contestID, Name: "Active",
+		StartTime: now.Add(-time.Hour), EndTime: now.Add(time.Hour), Duration: 120, IsActive: true,
+	}); err != nil {
+		t.Fatalf("CreateContest() error = %v", err)
+	}
+	if err := problemsRepo.CreateContestProblem(ctx, &domain.ContestProblems{
+		UniqueID: uuid.New().String(), ContestID: contestID, ProblemID: uuid.New().String(), OrderPosition: 1, MaxPoints: 100,
+	}); err != nil {
+		t.Fatalf("CreateContestProblem() error = %v", err)
+	}
+
+	// Pinned behaviour: re-starting an already-active contest succeeds
+	// and leaves it active; there is no re-start guard.
+	if err := svc.StartContest(ctx, contestID); err != nil {
+		t.Fatalf("StartContest() re-start error = %v, want success (idempotent)", err)
+	}
+	stored, err := contestRepo.GetByID(ctx, contestID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	if !stored.IsActive {
+		t.Error("StartContest() re-start left IsActive=false")
+	}
+}
+
+func TestContestServiceEndContestErrorsAndPinnedBehaviour(t *testing.T) {
+	ctx := context.Background()
+	svc, contestRepo, _, _ := newContestTestService()
+	now := time.Now()
+
+	if err := svc.EndContest(ctx, uuid.New().String()); !errors.Is(err, domain.ErrContestNotFound) {
+		t.Errorf("EndContest() missing error = %v, want errors.Is ErrContestNotFound", err)
+	}
+
+	contestID := uuid.New().String()
+	end := now.Add(time.Hour)
+	if err := contestRepo.CreateContest(ctx, &domain.Contest{
+		Id: contestID, Name: "Live",
+		StartTime: now.Add(-time.Hour), EndTime: end, Duration: 120, IsActive: true,
+	}); err != nil {
+		t.Fatalf("CreateContest() error = %v", err)
+	}
+	contestRepo.updateErr = errors.New("db down")
+	if err := svc.EndContest(ctx, contestID); err == nil || !strings.Contains(err.Error(), "failed to update contest") {
+		t.Errorf("EndContest() update error = %v, want wrapped error", err)
+	}
+	contestRepo.updateErr = nil
+
+	// Pinned behaviour: EndContest is unconditional — ending an
+	// already-inactive contest, or one past its end window, succeeds
+	// and leaves EndTime unchanged.
+	inactiveID := uuid.New().String()
+	pastID := uuid.New().String()
+	pastEnd := now.Add(-time.Hour)
+	for _, c := range []domain.Contest{
+		{Id: inactiveID, Name: "Inactive", StartTime: now.Add(-2 * time.Hour), EndTime: end, Duration: 120},
+		{Id: pastID, Name: "Past", StartTime: now.Add(-3 * time.Hour), EndTime: pastEnd, Duration: 120, IsActive: true},
+	} {
+		if err := contestRepo.CreateContest(ctx, &c); err != nil {
+			t.Fatalf("CreateContest() error = %v", err)
+		}
+	}
+	if err := svc.EndContest(ctx, inactiveID); err != nil {
+		t.Errorf("EndContest() inactive error = %v, want success (unconditional)", err)
+	}
+	if err := svc.EndContest(ctx, pastID); err != nil {
+		t.Errorf("EndContest() past-window error = %v, want success (unconditional)", err)
+	}
+	stored, err := contestRepo.GetByID(ctx, pastID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	if stored.IsActive || !stored.EndTime.Equal(pastEnd) {
+		t.Errorf("EndContest() past = IsActive %v EndTime %v, want false and %v", stored.IsActive, stored.EndTime, pastEnd)
+	}
+}
+
+func TestContestServiceDeleteContestErrors(t *testing.T) {
+	ctx := context.Background()
+	svc, contestRepo, _, _ := newContestTestService()
+	now := time.Now()
+
+	if err := svc.DeleteContest(ctx, &domain.DeleteContestRequest{Id: uuid.New().String()}); !errors.Is(err, domain.ErrContestNotFound) {
+		t.Errorf("DeleteContest() missing error = %v, want errors.Is ErrContestNotFound", err)
+	}
+
+	contestID := uuid.New().String()
+	if err := contestRepo.CreateContest(ctx, &domain.Contest{
+		Id: contestID, Name: "Deletable",
+		StartTime: now.Add(2 * time.Hour), EndTime: now.Add(4 * time.Hour), Duration: 120,
+	}); err != nil {
+		t.Fatalf("CreateContest() error = %v", err)
+	}
+	contestRepo.deleteErr = errors.New("db down")
+	if err := svc.DeleteContest(ctx, &domain.DeleteContestRequest{Id: contestID}); err == nil || !strings.Contains(err.Error(), "failed to delete contest") {
+		t.Errorf("DeleteContest() delete error = %v, want wrapped error", err)
 	}
 }

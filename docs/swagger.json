@@ -653,6 +653,40 @@
                 }
             }
         },
+        "/api/contest/all": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all visible contests, ordered by start time (any authenticated user)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest"
+                ],
+                "summary": "Get Visible Contests",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.CreateContestResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/contest/create": {
             "post": {
                 "security": [
@@ -691,6 +725,18 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -882,6 +928,18 @@
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -933,6 +991,12 @@
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
                     }
                 }
             },
@@ -968,6 +1032,140 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest/{id}/end": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "End a contest (admin or problem-setter only). Sets the contest inactive; its end time is left unchanged.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest"
+                ],
+                "summary": "End a Contest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contest/{id}/start": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Start a contest (admin or problem-setter only). The contest must not have ended and must have at least one problem.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Contest"
+                ],
+                "summary": "Start a Contest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -2304,6 +2502,19 @@
                 }
             }
         },
+        "domain.ContestStatus": {
+            "type": "string",
+            "enum": [
+                "upcoming",
+                "live",
+                "ended"
+            ],
+            "x-enum-varnames": [
+                "ContestStatusUpcoming",
+                "ContestStatusLive",
+                "ContestStatusEnded"
+            ]
+        },
         "domain.ContestUnregisterRequest": {
             "type": "object",
             "required": [
@@ -2439,6 +2650,9 @@
                 },
                 "start_time": {
                     "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.ContestStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -3061,6 +3275,9 @@
                 },
                 "start_time": {
                     "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.ContestStatus"
                 },
                 "updated_at": {
                     "type": "string"

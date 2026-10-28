@@ -4,10 +4,11 @@ import (
 	"algoforces/internal/domain"
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 type contestService struct {
@@ -16,7 +17,11 @@ type contestService struct {
 	contestProblemsRepo domain.ContestProblemsRepository
 }
 
-func NewContestService(contestRepo domain.ContestRepository, userRepo domain.UserRepository, contestProblemsRepo domain.ContestProblemsRepository) domain.ContestUseCase {
+func NewContestService(
+	contestRepo domain.ContestRepository,
+	userRepo domain.UserRepository,
+	contestProblemsRepo domain.ContestProblemsRepository,
+) domain.ContestUseCase {
 	return &contestService{
 		contestRepo:         contestRepo,
 		userRepo:            userRepo,
@@ -24,28 +29,63 @@ func NewContestService(contestRepo domain.ContestRepository, userRepo domain.Use
 	}
 }
 
-func (s *contestService) CreateContest(ctx context.Context, req *domain.CreateContestRequest, userId string) (*domain.CreateContestResponse, error) {
-	contestList, err := s.contestRepo.CheckContestInTimeWindowExcluding(ctx, req.StartTime, req.EndTime, "")
+func (s *contestService) getContest(ctx context.Context, id string) (*domain.Contest, error) {
+	contest, err := s.contestRepo.GetByID(ctx, id)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", userId).Str("contest_name", req.Name).Msg("Failed to check contest time window")
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrContestNotFound
+		}
+		return nil, fmt.Errorf("failed to get contest: %w", err)
 	}
-
-	if len(contestList) > 0 {
-		return nil, errors.New("already a contest exists in the given time window")
+	if contest == nil {
+		return nil, domain.ErrContestNotFound
 	}
+	return contest, nil
+}
 
-	// Check if correct problem setters are provided
-	for _, psUserId := range req.ProblemSetters {
+func (s *contestService) checkProblemSetters(
+	ctx context.Context,
+	setterIDs []string,
+) error {
+	for _, psUserId := range setterIDs {
 		user, err := s.userRepo.GetByID(ctx, psUserId)
 		if err != nil {
-			log.Error().Err(err).Str("user_id", userId).Str("problem-setter_id", psUserId).Msg("Failed to get problem setter user")
-			return nil, err
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fmt.Errorf("%w: %s", domain.ErrProblemSetterNotFound, psUserId)
+			}
+			return fmt.Errorf("failed to get problem setter user %s: %w", psUserId, err)
 		}
-		if user.Role != "problem-setter" && user.Role != "admin" {
-			log.Warn().Str("user_id", userId).Str("problem-setter_id", psUserId).Str("role", user.Role).Msg("Unauthorized user attempted to be added as problem setter")
-			return nil, errors.New("user " + psUserId + " is not authorized as problem setter")
+		if user == nil || (user.Role != "problem-setter" && user.Role != "admin") {
+			return fmt.Errorf("%w: %s", domain.ErrProblemSetterNotAuthorized, psUserId)
 		}
+	}
+	return nil
+}
+
+func (s *contestService) CreateContest(
+	ctx context.Context,
+	req *domain.CreateContestRequest,
+	userId string,
+) (*domain.CreateContestResponse, error) {
+	if req == nil {
+		return nil, errors.New("contest request is required")
+	}
+
+	contestList, err := s.contestRepo.CheckContestInTimeWindowExcluding(
+		ctx,
+		req.StartTime,
+		req.EndTime,
+		"",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check contest time window: %w", err)
+	}
+	if len(contestList) > 0 {
+		return nil, domain.ErrContestOverlap
+	}
+
+	if err := s.checkProblemSetters(ctx, req.ProblemSetters); err != nil {
+		return nil, err
 	}
 
 	contest := &domain.Contest{
@@ -61,10 +101,8 @@ func (s *contestService) CreateContest(ctx context.Context, req *domain.CreateCo
 		CreatedBy:      userId,
 	}
 
-	err = s.contestRepo.CreateContest(ctx, contest)
-	if err != nil {
-		log.Error().Err(err).Str("user_id", userId).Str("contest_name", req.Name).Msg("Failed to create contest in database")
-		return nil, err
+	if err := s.contestRepo.CreateContest(ctx, contest); err != nil {
+		return nil, fmt.Errorf("failed to create contest: %w", err)
 	}
 
 	response := &domain.CreateContestResponse{
@@ -86,8 +124,15 @@ func (s *contestService) CreateContest(ctx context.Context, req *domain.CreateCo
 	return response, nil
 }
 
-func (s *contestService) UpdateContest(ctx context.Context, req *domain.UpdateContestRequest) (*domain.UpdateContestResponse, error) {
-	contest, err := s.contestRepo.GetByID(ctx, req.Id)
+func (s *contestService) UpdateContest(
+	ctx context.Context,
+	req *domain.UpdateContestRequest,
+) (*domain.UpdateContestResponse, error) {
+	if req == nil {
+		return nil, errors.New("contest request is required")
+	}
+
+	contest, err := s.getContest(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -95,31 +140,30 @@ func (s *contestService) UpdateContest(ctx context.Context, req *domain.UpdateCo
 	// Once the contest has started (now >= StartTime), its time window is
 	// locked: changing StartTime or EndTime is rejected. Other fields may
 	// still be updated, and re-saving the unchanged times is allowed.
-	if !time.Now().Before(contest.StartTime) && (!req.StartTime.Equal(contest.StartTime) || !req.EndTime.Equal(contest.EndTime)) {
-		return nil, errors.New("cannot change start time or end time after the contest has started")
+	started := !time.Now().Before(contest.StartTime)
+	timesChanged := !req.StartTime.Equal(contest.StartTime) || !req.EndTime.Equal(contest.EndTime)
+	if started && timesChanged {
+		return nil, domain.ErrContestTimeLocked
 	}
 
 	// Pre Update validations for time window and problem setters. The
 	// contest being updated is excluded from the overlap check so it
 	// does not collide with its own existing window.
-	contestList, err := s.contestRepo.CheckContestInTimeWindowExcluding(ctx, req.StartTime, req.EndTime, req.Id)
+	contestList, err := s.contestRepo.CheckContestInTimeWindowExcluding(
+		ctx,
+		req.StartTime,
+		req.EndTime,
+		req.Id,
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to check contest time window: %w", err)
 	}
-
 	if len(contestList) > 0 {
-		return nil, errors.New("already a contest exists in the given time window")
+		return nil, domain.ErrContestOverlap
 	}
 
-	// Check if correct problem setters are provided
-	for _, psUserId := range req.ProblemSetters {
-		user, err := s.userRepo.GetByID(ctx, psUserId)
-		if err != nil {
-			return nil, err
-		}
-		if user.Role != "problem-setter" && user.Role != "admin" {
-			return nil, errors.New("user " + psUserId + " is not authorized as problem setter")
-		}
+	if err := s.checkProblemSetters(ctx, req.ProblemSetters); err != nil {
+		return nil, err
 	}
 
 	contest.Name = req.Name
@@ -131,9 +175,8 @@ func (s *contestService) UpdateContest(ctx context.Context, req *domain.UpdateCo
 	contest.IsActive = req.IsActive
 	contest.ProblemSetters = req.ProblemSetters
 
-	err = s.contestRepo.UpdateContest(ctx, contest)
-	if err != nil {
-		return nil, err
+	if err := s.contestRepo.UpdateContest(ctx, contest); err != nil {
+		return nil, fmt.Errorf("failed to update contest: %w", err)
 	}
 
 	response := &domain.UpdateContestResponse{
@@ -156,7 +199,7 @@ func (s *contestService) UpdateContest(ctx context.Context, req *domain.UpdateCo
 }
 
 func (s *contestService) GetContestDetails(ctx context.Context, id string) (*domain.CreateContestResponse, error) {
-	contest, err := s.contestRepo.GetByID(ctx, id)
+	contest, err := s.getContest(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -181,83 +224,101 @@ func (s *contestService) GetContestDetails(ctx context.Context, id string) (*dom
 }
 
 func (s *contestService) DeleteContest(ctx context.Context, req *domain.DeleteContestRequest) error {
-	contest, err := s.contestRepo.GetByID(ctx, req.Id)
+	if req == nil {
+		return errors.New("delete contest request is required")
+	}
+
+	contest, err := s.getContest(ctx, req.Id)
 	if err != nil {
 		return err
 	}
 
 	// A live contest cannot be deleted.
 	if domain.DeriveContestStatus(*contest, time.Now()) == domain.ContestStatusLive {
-		return errors.New("cannot delete a live contest")
+		return domain.ErrContestLive
 	}
 
-	return s.contestRepo.DeleteContest(ctx, req.Id)
+	if err := s.contestRepo.DeleteContest(ctx, req.Id); err != nil {
+		return fmt.Errorf("failed to delete contest: %w", err)
+	}
+	return nil
 }
 
 func (s *contestService) StartContest(ctx context.Context, id string) error {
-	contest, err := s.contestRepo.GetByID(ctx, id)
+	contest, err := s.getContest(ctx, id)
 	if err != nil {
 		return err
 	}
 
 	// An ended contest (now > EndTime) cannot be started again.
 	if time.Now().After(contest.EndTime) {
-		return errors.New("cannot start a contest that has ended")
+		return domain.ErrContestEnded
 	}
 
 	if s.contestProblemsRepo == nil {
-		return errors.New("contest problems repository is not configured")
+		return domain.ErrContestProblemsNotConfigured
 	}
 
 	problems, err := s.contestProblemsRepo.GetContestProblemsByContestID(ctx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get contest problems: %w", err)
 	}
 	if len(problems) == 0 {
-		return errors.New("contest must have at least one problem before it can be started")
+		return domain.ErrContestHasNoProblems
 	}
 
 	contest.IsActive = true
 
-	return s.contestRepo.UpdateContest(ctx, contest)
+	if err := s.contestRepo.UpdateContest(ctx, contest); err != nil {
+		return fmt.Errorf("failed to update contest: %w", err)
+	}
+	return nil
 }
 
-// EndContest deactivates a contest. EndTime is left unchanged; the derived
-// status helper treats a started-but-inactive contest as ContestStatusEnded.
+// EndContest deactivates a contest without changing EndTime; the
+// derived status then reports it as ended.
 func (s *contestService) EndContest(ctx context.Context, id string) error {
-	contest, err := s.contestRepo.GetByID(ctx, id)
+	contest, err := s.getContest(ctx, id)
 	if err != nil {
 		return err
 	}
 
 	contest.IsActive = false
 
-	return s.contestRepo.UpdateContest(ctx, contest)
+	if err := s.contestRepo.UpdateContest(ctx, contest); err != nil {
+		return fmt.Errorf("failed to update contest: %w", err)
+	}
+	return nil
+}
+
+func toContestResponse(contest domain.Contest, now time.Time) domain.CreateContestResponse {
+	return domain.CreateContestResponse{
+		Id:             contest.Id,
+		Name:           contest.Name,
+		Description:    contest.Description,
+		StartTime:      contest.StartTime,
+		EndTime:        contest.EndTime,
+		Duration:       contest.Duration,
+		Visible:        contest.Visible,
+		IsActive:       contest.IsActive,
+		Status:         domain.DeriveContestStatus(contest, now),
+		ProblemSetters: contest.ProblemSetters,
+		CreatedBy:      contest.CreatedBy,
+		CreatedAt:      contest.CreatedAt,
+		UpdatedAt:      contest.UpdatedAt,
+	}
 }
 
 func (s *contestService) GetAllContests(ctx context.Context) ([]domain.CreateContestResponse, error) {
 	contests, err := s.contestRepo.GetAllContests(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get contests: %w", err)
 	}
 
-	var contestResponses []domain.CreateContestResponse
+	now := time.Now()
+	contestResponses := make([]domain.CreateContestResponse, 0, len(contests))
 	for _, contest := range contests {
-		contestResponses = append(contestResponses, domain.CreateContestResponse{
-			Id:             contest.Id,
-			Name:           contest.Name,
-			Description:    contest.Description,
-			StartTime:      contest.StartTime,
-			EndTime:        contest.EndTime,
-			Duration:       contest.Duration,
-			Visible:        contest.Visible,
-			IsActive:       contest.IsActive,
-			Status:         domain.DeriveContestStatus(contest, time.Now()),
-			ProblemSetters: contest.ProblemSetters,
-			CreatedBy:      contest.CreatedBy,
-			CreatedAt:      contest.CreatedAt,
-			UpdatedAt:      contest.UpdatedAt,
-		})
+		contestResponses = append(contestResponses, toContestResponse(contest, now))
 	}
 
 	return contestResponses, nil
@@ -266,26 +327,13 @@ func (s *contestService) GetAllContests(ctx context.Context) ([]domain.CreateCon
 func (s *contestService) GetVisibleContests(ctx context.Context) ([]domain.CreateContestResponse, error) {
 	contests, err := s.contestRepo.GetVisibleContests(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get contests: %w", err)
 	}
 
-	var contestResponses []domain.CreateContestResponse
+	now := time.Now()
+	contestResponses := make([]domain.CreateContestResponse, 0, len(contests))
 	for _, contest := range contests {
-		contestResponses = append(contestResponses, domain.CreateContestResponse{
-			Id:             contest.Id,
-			Name:           contest.Name,
-			Description:    contest.Description,
-			StartTime:      contest.StartTime,
-			EndTime:        contest.EndTime,
-			Duration:       contest.Duration,
-			Visible:        contest.Visible,
-			IsActive:       contest.IsActive,
-			Status:         domain.DeriveContestStatus(contest, time.Now()),
-			ProblemSetters: contest.ProblemSetters,
-			CreatedBy:      contest.CreatedBy,
-			CreatedAt:      contest.CreatedAt,
-			UpdatedAt:      contest.UpdatedAt,
-		})
+		contestResponses = append(contestResponses, toContestResponse(contest, now))
 	}
 
 	return contestResponses, nil
