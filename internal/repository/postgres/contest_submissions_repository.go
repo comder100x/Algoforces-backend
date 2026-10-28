@@ -3,6 +3,7 @@ package postgres
 import (
 	"algoforces/internal/domain"
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -15,14 +16,27 @@ func NewContestSubmissionsRepository(db *gorm.DB) domain.ContestSubmissionsRepos
 	}
 }
 
-// GetSubmissionsByContestID returns every submission for a contest, newest
-// first. It applies no ownership or role filtering; the service layer
-// filters the result before returning it to a caller.
-func (r *submissionRepository) GetSubmissionsByContestID(ctx context.Context, contestID string) ([]domain.Submission, error) {
+// GetSubmissionsByContestID returns the submissions the caller may see,
+// newest first. Non-privileged callers get only their own submissions;
+// privileged callers get every submission for the contest.
+func (r *submissionRepository) GetSubmissionsByContestID(
+	ctx context.Context,
+	contestID string,
+	userID string,
+	includeHidden bool,
+) ([]domain.Submission, error) {
+	query := r.db.WithContext(ctx).Where("contest_id = ?", contestID)
+	if !includeHidden {
+		query = query.Where("user_id = ?", userID)
+	}
 	var submissions []domain.Submission
-	err := r.db.WithContext(ctx).Where("contest_id = ?", contestID).Order("submitted_at DESC").Find(&submissions).Error
+	err := query.Order("submitted_at DESC").Find(&submissions).Error
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"get submissions for contest %s: %w",
+			contestID,
+			err,
+		)
 	}
 	return submissions, nil
 }

@@ -174,8 +174,9 @@ The seed also creates a demo contest, two easy problems, test cases, and contest
 End-to-end flow for a contest, from creation to final results. The seeded
 demo contest (`d4e5f6a7-4444-4444-8444-456789abcdef`, "Algoforces Demo
 Contest") already has the two seeded problems attached, so the local flow
-below can be run against it without creating anything first. All requests
-except health/login need `Authorization: Bearer $TOKEN`.
+below can be run against it without creating anything first. All contest-flow
+requests need Authorization (signup/login/health excepted); send it as
+`Authorization: Bearer $TOKEN`.
 
 1. **Create a contest** (admin / problem-setter): `POST /api/contest/create`
    with name, description, start/end times, duration, and problem setters.
@@ -186,9 +187,9 @@ except health/login need `Authorization: Bearer $TOKEN`.
    `f6a7b8c9-6666-4666-8666-6789abcdef12` ("Maximum of Three"), each with
    one visible and one hidden test case.
 3. **Register** (user): `POST /api/contest/register`.
-4. **Start the contest** (PR1 lifecycle): starting a contest opens its live
-   window. Starting/ending is provided by the contest lifecycle work (PR1);
-   this PR does not change it.
+4. **Start the contest** (PR1 lifecycle): `POST /api/contest/:id/start`
+   opens its live window. Starting/ending is provided by the contest
+   lifecycle work (PR1); this PR does not change it.
 5. **Submit during the live window** (user): `POST /api/submission/create`.
    Submissions outside the live window are rejected by the submission
    gate (PR2); this PR does not change that gate.
@@ -199,8 +200,8 @@ except health/login need `Authorization: Bearer $TOKEN`.
    including hidden test case data.
 7. **Standings** (PR4): standings are computed from the live submission
    records (PR4 ranking); this PR does not change ranking.
-8. **End the contest** (PR1 lifecycle): after `EndContest`, submissions
-   are rejected by the live-window gate (PR2) and standings show the
+8. **End the contest** (PR1 lifecycle): `POST /api/contest/:id/end` — after
+   `EndContest`, submissions are rejected by the live-window gate (PR2) and standings show the
    contest as ended/final. There is no snapshot table: finalization relies
    on the PR1 end state plus the PR2 gate, and the submissions list keeps
    reading the live submissions table, so it reflects the final state

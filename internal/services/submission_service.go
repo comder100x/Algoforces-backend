@@ -23,15 +23,23 @@ import (
 type SubmissionService struct {
 	submissionRepo         domain.SubmissionRepository
 	contestSubmissionsRepo domain.ContestSubmissionsRepository
+	contestRepo            domain.ContestRepository
 	apiKey                 string
 	baseURL                string
 	httpClient             *http.Client
 }
 
-func NewSubmissionService(submissionRepo domain.SubmissionRepository, contestSubmissionsRepo domain.ContestSubmissionsRepository, apiKey string, baseURL string) domain.SubmissionUseCase {
+func NewSubmissionService(
+	submissionRepo domain.SubmissionRepository,
+	contestSubmissionsRepo domain.ContestSubmissionsRepository,
+	contestRepo domain.ContestRepository,
+	apiKey string,
+	baseURL string,
+) domain.SubmissionUseCase {
 	return &SubmissionService{
 		submissionRepo:         submissionRepo,
 		contestSubmissionsRepo: contestSubmissionsRepo,
+		contestRepo:            contestRepo,
 		apiKey:                 apiKey,
 		baseURL:                baseURL,
 		httpClient: &http.Client{
@@ -167,10 +175,17 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 func (s *SubmissionService) UpdateSubmissionStatus(ctx context.Context, submissionID, status string) error {
 	return s.submissionRepo.UpdateSubmissionStatus(ctx, submissionID, status)
 }
-func (s *SubmissionService) GetSubmissionDetails(ctx context.Context, uniqueID string, includeHidden bool) (*domain.SubmissionDetailsResponse, error) {
+func (s *SubmissionService) GetSubmissionDetails(
+	ctx context.Context,
+	uniqueID string,
+	includeHidden bool,
+) (*domain.SubmissionDetailsResponse, error) {
+	if s.submissionRepo == nil {
+		return nil, errors.New("submission repository is not configured")
+	}
 	submission, err := s.submissionRepo.GetSubmissionDetails(ctx, uniqueID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get submission details %s: %w", uniqueID, err)
 	}
 
 	results := s.parseSubmissionResults(submission.TestCaseResults, includeHidden)

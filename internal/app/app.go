@@ -82,7 +82,13 @@ func buildHandlers(db *database.Database) router.Handlers {
 	contestProblemsService := services.NewContestProblemsService(contestProblemsRepo, contestRepo, problemRepo)
 	problemService := services.NewProblemService(problemRepo, userRepo)
 	testCaseService := services.NewTestCaseService(testCaseRepo)
-	submissionService := services.NewSubmissionService(submissionRepo, contestSubmissionsRepo, conf.JUDGE0_API_KEY, conf.JUDGE0_URL)
+	submissionService := services.NewSubmissionService(
+		submissionRepo,
+		contestSubmissionsRepo,
+		contestRepo,
+		conf.JUDGE0_API_KEY,
+		conf.JUDGE0_URL,
+	)
 
 	return router.Handlers{
 		Auth:            handlers.NewAuthHandler(authService),
