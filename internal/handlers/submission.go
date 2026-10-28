@@ -55,23 +55,27 @@ func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 	// Call the use case to create a new submission
 	createSubmissionResponse, err := h.submissionUseCase.CreateNewSubmission(ctx.Request.Context(), &createSubmissionRequest)
 	if err != nil {
-		log.Error().Err(err).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Failed to create submission")
 		// Gate rejections map to client errors, everything else is a 500.
-		// Problem-not-in-contest is a 409, not a 403.
+		var status int
+		var message string
 		switch {
 		case errors.Is(err, domain.ErrContestNotFound):
-			utils.SendError(ctx, http.StatusNotFound, err, "Contest not found")
+			status, message = http.StatusNotFound, "Contest not found"
 		case errors.Is(err, domain.ErrContestNotVisible):
-			utils.SendError(ctx, http.StatusForbidden, err, "Contest is not visible")
+			status, message = http.StatusForbidden, "Contest is not visible"
 		case errors.Is(err, domain.ErrContestNotLive):
-			utils.SendError(ctx, http.StatusForbidden, err, "Contest is not live")
+			status, message = http.StatusForbidden, "Contest is not live"
 		case errors.Is(err, domain.ErrNotRegistered):
-			utils.SendError(ctx, http.StatusForbidden, err, "You are not registered for this contest")
+			status, message = http.StatusForbidden, "You are not registered for this contest"
 		case errors.Is(err, domain.ErrProblemNotInContest):
-			utils.SendError(ctx, http.StatusConflict, err, "Problem is not part of this contest")
+			status, message = http.StatusConflict, "Problem is not part of this contest"
 		default:
-			utils.SendError(ctx, http.StatusInternalServerError, err, "Failed to create submission")
+			log.Error().Err(err).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Failed to create submission")
+			utils.SendError(ctx, http.StatusInternalServerError, errors.New("internal server error"), "Failed to create submission")
+			return
 		}
+		log.Warn().Err(err).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Submission rejected by contest gate")
+		utils.SendError(ctx, status, err, message)
 		return
 	}
 

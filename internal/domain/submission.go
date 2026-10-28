@@ -8,10 +8,8 @@ import (
 	"github.com/lib/pq"
 )
 
-// Sentinel errors for the contest submission gate (see
-// services/submission_gate.go). Handlers match these with errors.Is;
-// the service must return them unwrapped (or wrapped with %w) so the
-// match keeps working.
+// Sentinel errors for the contest submission gate (CheckSubmissionGate on
+// the contest service). Handlers match these with errors.Is; wrap with %w.
 var (
 	// ErrContestNotFound is returned when the submission's contest does not exist.
 	ErrContestNotFound = errors.New("contest not found")
@@ -21,7 +19,7 @@ var (
 	// window (before StartTime, after EndTime, or not IsActive).
 	ErrContestNotLive = errors.New("contest is not live")
 	// ErrNotRegistered is returned when the user has no registration
-	// with Status == "registered" for the contest.
+	// with Status == RegistrationStatusRegistered for the contest.
 	ErrNotRegistered = errors.New("user is not registered for this contest")
 	// ErrProblemNotInContest is returned when the problem is not part
 	// of the contest's problem set.

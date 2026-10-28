@@ -61,6 +61,13 @@ func submissionScore(passed, total, maxPoints int) int {
 }
 
 func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain.CreateSubmissionRequest) (*domain.CreateSubmissionResponse, error) {
+	if req == nil {
+		return nil, errors.New("create submission request is nil")
+	}
+	if s.contestUseCase == nil {
+		return nil, errors.New("contest use case is not configured")
+	}
+
 	// Reject before creating the submission row or calling Judge0.
 	if err := s.contestUseCase.CheckSubmissionGate(ctx, req.UserID, req.ContestID, req.ProblemID); err != nil {
 		return nil, err
@@ -69,12 +76,15 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 	// Get all testCases for the problem
 	testCases, err := s.submissionRepo.GetAllTestCasesForProblem(ctx, req.ProblemID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get test cases: %w", err)
 	}
 
 	problem, err := s.submissionRepo.GetProblemByID(ctx, req.ProblemID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get problem limits: %w", err)
+	}
+	if problem == nil {
+		return nil, errors.New("problem not found")
 	}
 
 	maxPoints, err := s.submissionRepo.GetContestProblemMaxPoints(ctx, req.ContestID, req.ProblemID)
@@ -99,7 +109,7 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 	}
 	err = s.submissionRepo.CreateNewSubmission(ctx, submission)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create submission: %w", err)
 	}
 
 	callbackBase := strings.TrimRight(conf.APP_URL, "/")
@@ -110,7 +120,7 @@ func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain
 	//Get the Language ID
 	languageID, err := GetLanguageID(req.Language)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get language id: %w", err)
 	}
 
 	// Build batch submission request for all test cases

@@ -4,6 +4,7 @@ import (
 	"algoforces/internal/domain"
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -25,23 +26,33 @@ func NewContestRegisterService(contestRegisterRepo domain.ContestRegisterReposit
 
 func (s *contestRegisterService) RegisterContest(ctx context.Context, userID string, req *domain.ContestRegisterRequest) (*domain.ContestRegisterResponse, error) {
 	// Verify user exists
-	_, err := s.userRepo.GetByID(ctx, userID)
+	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, errors.New("user not found")
+		// User repo returns plain "user not found", not gorm.ErrRecordNotFound.
+		if errors.Is(err, gorm.ErrRecordNotFound) || err.Error() == domain.ErrUserNotFound.Error() {
+			return nil, domain.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		return nil, domain.ErrUserNotFound
 	}
 
 	// Verify contest exists
 	contest, err := s.contestRepo.GetByID(ctx, req.ContestID)
 	if err != nil {
-		return nil, errors.New("contest not found")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrContestNotFound
+		}
+		return nil, fmt.Errorf("failed to get contest: %w", err)
 	}
 	if contest == nil {
-		return nil, errors.New("contest not found")
+		return nil, domain.ErrContestNotFound
 	}
 
 	// Registration needs a visible contest that has not ended.
 	if !contest.Visible {
-		return nil, errors.New("contest is not visible")
+		return nil, domain.ErrContestNotVisible
 	}
 	if time.Now().After(contest.EndTime) {
 		return nil, errors.New("contest has ended")
@@ -55,28 +66,31 @@ func (s *contestRegisterService) RegisterContest(ctx context.Context, userID str
 
 	// Check if already registered
 	existingRegistration, err := s.contestRegisterRepo.GetRegistrationByUserAndContest(ctx, userID, req.ContestID)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to get contest registration: %w", err)
+	}
 	if err == nil && existingRegistration != nil {
-		if existingRegistration.Status == "registered" {
+		if existingRegistration.Status == domain.RegistrationStatusRegistered {
 			return nil, errors.New("already registered for this contest")
 		}
 		// If previously unregistered, update status to registered
-		err = s.contestRegisterRepo.UpdateRegistrationStatus(ctx, userID, req.ContestID, "registered")
+		err = s.contestRegisterRepo.UpdateRegistrationStatus(ctx, userID, req.ContestID, domain.RegistrationStatusRegistered)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to update registration status: %w", err)
 		}
 		return &domain.ContestRegisterResponse{
 			ID:           existingRegistration.ID,
 			UserID:       existingRegistration.UserID,
 			ContestID:    existingRegistration.ContestID,
 			RegisteredAt: existingRegistration.RegisteredAt,
-			Status:       "registered",
+			Status:       domain.RegistrationStatusRegistered,
 		}, nil
 	}
 
 	// Create new registration
 	registration, err := s.contestRegisterRepo.CreateContestRegistration(ctx, userID, req.ContestID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create contest registration: %w", err)
 	}
 
 	return &domain.ContestRegisterResponse{
@@ -90,19 +104,28 @@ func (s *contestRegisterService) RegisterContest(ctx context.Context, userID str
 
 func (s *contestRegisterService) UnregisterContest(ctx context.Context, userID string, req *domain.ContestUnregisterRequest) error {
 	// Check if registered
-	_, err := s.contestRegisterRepo.GetRegistrationByUserAndContest(ctx, userID, req.ContestID)
+	registration, err := s.contestRegisterRepo.GetRegistrationByUserAndContest(ctx, userID, req.ContestID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("not registered for this contest")
+			return domain.ErrNotRegistered
 		}
-		return err
+		return fmt.Errorf("failed to get contest registration: %w", err)
+	}
+	if registration == nil {
+		return domain.ErrNotRegistered
 	}
 
 	// Check the time constraint: unregistration allowed only if more than 2 minutes before contest start time
 
 	contest, err := s.contestRepo.GetByID(ctx, req.ContestID)
 	if err != nil {
-		return errors.New("contest not found")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return domain.ErrContestNotFound
+		}
+		return fmt.Errorf("failed to get contest: %w", err)
+	}
+	if contest == nil {
+		return domain.ErrContestNotFound
 	}
 
 	contestStartTime := contest.StartTime
@@ -111,9 +134,9 @@ func (s *contestRegisterService) UnregisterContest(ctx context.Context, userID s
 	}
 
 	// Update status to unregistered
-	err = s.contestRegisterRepo.UpdateRegistrationStatus(ctx, userID, req.ContestID, "unregistered")
+	err = s.contestRegisterRepo.UpdateRegistrationStatus(ctx, userID, req.ContestID, domain.RegistrationStatusUnregistered)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update registration status: %w", err)
 	}
 
 	return nil
@@ -122,7 +145,7 @@ func (s *contestRegisterService) UnregisterContest(ctx context.Context, userID s
 func (s *contestRegisterService) GetAllRegistrations(ctx context.Context, userID string) (*domain.AllRegisteredContestForUserResponse, error) {
 	registrations, err := s.contestRegisterRepo.GetAllRegistrationsByUserID(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get registrations: %w", err)
 	}
 
 	var responses []domain.ContestRegisterResponse
@@ -144,7 +167,7 @@ func (s *contestRegisterService) GetAllRegistrations(ctx context.Context, userID
 func (s *contestRegisterService) GetAllRegistrationsForAdmin(ctx context.Context) (*domain.AllRegisteredContestForUserResponse, error) {
 	registrations, err := s.contestRegisterRepo.GetAllRegistrationsForAdmin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get registrations: %w", err)
 	}
 
 	var responses []domain.ContestRegisterResponse

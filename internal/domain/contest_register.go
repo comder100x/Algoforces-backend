@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+// Registration status values stored in ContestRegistration.Status.
+const (
+	RegistrationStatusRegistered   = "registered"
+	RegistrationStatusUnregistered = "unregistered"
+)
+
 // ContestRegistration is the database model
 type ContestRegistration struct {
 	ID           string    `json:"id" gorm:"primaryKey;type:uuid"`

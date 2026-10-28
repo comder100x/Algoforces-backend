@@ -2,8 +2,12 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+// ErrUserNotFound is returned when a user lookup finds no user.
+var ErrUserNotFound = errors.New("user not found")
 
 // Actual reponse returned to user initially
 type User struct {
