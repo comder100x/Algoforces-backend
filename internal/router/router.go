@@ -21,6 +21,7 @@ type Handlers struct {
 	Problem         *handlers.ProblemHandler
 	TestCase        *handlers.TestCaseHandler
 	Submission      *handlers.SubmissionHandler
+	Standings       *handlers.StandingsHandler
 }
 
 func New(h Handlers) *gin.Engine {
@@ -79,6 +80,7 @@ func registerContestRoutes(r *gin.Engine, h Handlers) {
 	{
 		contest.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), h.Contest.CreateContest)
 		contest.GET("/:id", h.Contest.GetContestDetails)
+		contest.GET("/:id/standings", h.Standings.GetStandings)
 		contest.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), h.Contest.UpdateContest)
 		contest.DELETE("/:id", middleware.RoleMiddleware("admin"), h.Contest.DeleteContest)
 	}
