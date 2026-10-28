@@ -21,17 +21,19 @@ import (
 )
 
 type SubmissionService struct {
-	submissionRepo domain.SubmissionRepository
-	apiKey         string
-	baseURL        string
-	httpClient     *http.Client
+	submissionRepo         domain.SubmissionRepository
+	contestSubmissionsRepo domain.ContestSubmissionsRepository
+	apiKey                 string
+	baseURL                string
+	httpClient             *http.Client
 }
 
-func NewSubmissionService(submissionRepo domain.SubmissionRepository, apiKey string, baseURL string) domain.SubmissionUseCase {
+func NewSubmissionService(submissionRepo domain.SubmissionRepository, contestSubmissionsRepo domain.ContestSubmissionsRepository, apiKey string, baseURL string) domain.SubmissionUseCase {
 	return &SubmissionService{
-		submissionRepo: submissionRepo,
-		apiKey:         apiKey,
-		baseURL:        baseURL,
+		submissionRepo:         submissionRepo,
+		contestSubmissionsRepo: contestSubmissionsRepo,
+		apiKey:                 apiKey,
+		baseURL:                baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
