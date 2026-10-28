@@ -18,27 +18,22 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-	"gorm.io/gorm"
 )
 
 type SubmissionService struct {
-	submissionRepo      domain.SubmissionRepository
-	contestRepo         domain.ContestRepository
-	contestRegisterRepo domain.ContestRegisterRepository
-	contestProblemsRepo domain.ContestProblemsRepository
-	apiKey              string
-	baseURL             string
-	httpClient          *http.Client
+	submissionRepo domain.SubmissionRepository
+	contestUseCase domain.ContestUseCase
+	apiKey         string
+	baseURL        string
+	httpClient     *http.Client
 }
 
-func NewSubmissionService(submissionRepo domain.SubmissionRepository, contestRepo domain.ContestRepository, contestRegisterRepo domain.ContestRegisterRepository, contestProblemsRepo domain.ContestProblemsRepository, apiKey string, baseURL string) domain.SubmissionUseCase {
+func NewSubmissionService(submissionRepo domain.SubmissionRepository, contestUseCase domain.ContestUseCase, apiKey string, baseURL string) domain.SubmissionUseCase {
 	return &SubmissionService{
-		submissionRepo:      submissionRepo,
-		contestRepo:         contestRepo,
-		contestRegisterRepo: contestRegisterRepo,
-		contestProblemsRepo: contestProblemsRepo,
-		apiKey:              apiKey,
-		baseURL:             baseURL,
+		submissionRepo: submissionRepo,
+		contestUseCase: contestUseCase,
+		apiKey:         apiKey,
+		baseURL:        baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -65,60 +60,9 @@ func submissionScore(passed, total, maxPoints int) int {
 	return 0
 }
 
-// checkSubmissionGate loads the contest, the caller's registration and
-// the contest's problems, then runs the pure CheckSubmissionGate check
-// in submission_gate.go. Gate rejections are returned as the sentinel
-// errors from domain/submission.go (unwrapped, so errors.Is works in
-// the handler); repository failures are wrapped and surface as 500s.
-// A missing registration row (gorm.ErrRecordNotFound) is not a
-// repository failure: it means the user is not registered, which the
-// gate reports as domain.ErrNotRegistered.
-func (s *SubmissionService) checkSubmissionGate(ctx context.Context, req *domain.CreateSubmissionRequest) error {
-	if s.contestRepo == nil || s.contestRegisterRepo == nil || s.contestProblemsRepo == nil {
-		return errors.New("contest gate repositories are not configured")
-	}
-
-	contest, err := s.contestRepo.GetByID(ctx, req.ContestID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return domain.ErrContestNotFound
-		}
-		return fmt.Errorf("failed to get contest: %w", err)
-	}
-	if contest == nil {
-		return domain.ErrContestNotFound
-	}
-
-	registration, err := s.contestRegisterRepo.GetRegistrationByUserAndContest(ctx, req.UserID, req.ContestID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			registration = nil
-		} else {
-			return fmt.Errorf("failed to get contest registration: %w", err)
-		}
-	}
-
-	contestProblems, err := s.contestProblemsRepo.GetContestProblemsByContestID(ctx, req.ContestID)
-	if err != nil {
-		return fmt.Errorf("failed to get contest problems: %w", err)
-	}
-	problemInContest := false
-	for _, contestProblem := range contestProblems {
-		if contestProblem.ProblemID == req.ProblemID {
-			problemInContest = true
-			break
-		}
-	}
-
-	return CheckSubmissionGate(contest, registration, problemInContest, req.UserID, time.Now())
-}
-
 func (s *SubmissionService) CreateNewSubmission(ctx context.Context, req *domain.CreateSubmissionRequest) (*domain.CreateSubmissionResponse, error) {
-	// Contest gate: reject before creating the submission row and
-	// before any Judge0 call. A gate rejection returns one of the
-	// sentinel errors in domain/submission.go, unwrapped, so the
-	// handler can map it with errors.Is.
-	if err := s.checkSubmissionGate(ctx, req); err != nil {
+	// Reject before creating the submission row or calling Judge0.
+	if err := s.contestUseCase.CheckSubmissionGate(ctx, req.UserID, req.ContestID, req.ProblemID); err != nil {
 		return nil, err
 	}
 

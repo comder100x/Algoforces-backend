@@ -95,4 +95,5 @@ type ContestUseCase interface {
 	DeleteContest(ctx context.Context, req *DeleteContestRequest) error
 	StartContest(ctx context.Context, id string) error
 	GetAllContests(ctx context.Context) ([]CreateContestResponse, error)
+	CheckSubmissionGate(ctx context.Context, userID, contestID, problemID string) error
 }
