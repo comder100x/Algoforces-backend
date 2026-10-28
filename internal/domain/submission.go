@@ -282,6 +282,7 @@ type SubmissionRepository interface {
 type SubmissionUseCase interface {
 	CreateNewSubmission(ctx context.Context, req *CreateSubmissionRequest) (*CreateSubmissionResponse, error)
 	GetSubmissionDetails(ctx context.Context, uniqueID string, includeHidden bool) (*SubmissionDetailsResponse, error)
+	ListContestSubmissions(ctx context.Context, contestID, userID, role string) ([]SubmissionDetailsResponse, error)
 	UpdateSubmissionStatus(ctx context.Context, submissionID string, status string) error
 	UpdateSubmissionResult(ctx context.Context, submissionID string, req *UpdateSubmissionResultRequest) (*UpdateSubmissionResultResponse, error)
 	JudgeSubmissionCallback(ctx context.Context, req *JudgeSubmissionCallbackRequest) error

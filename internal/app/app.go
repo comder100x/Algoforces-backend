@@ -73,6 +73,7 @@ func buildHandlers(db *database.Database) router.Handlers {
 	problemRepo := postgres.NewProblemRepository(db.DB)
 	testCaseRepo := postgres.NewTestCaseRepository(db.DB)
 	submissionRepo := postgres.NewSubmissionRepository(db.DB)
+	contestSubmissionsRepo := postgres.NewContestSubmissionsRepository(db.DB)
 
 	authService := services.NewAuthService(userRepo)
 	adminService := services.NewAdminService(adminRepo)
@@ -81,7 +82,13 @@ func buildHandlers(db *database.Database) router.Handlers {
 	contestProblemsService := services.NewContestProblemsService(contestProblemsRepo, contestRepo, problemRepo)
 	problemService := services.NewProblemService(problemRepo, userRepo)
 	testCaseService := services.NewTestCaseService(testCaseRepo)
-	submissionService := services.NewSubmissionService(submissionRepo, conf.JUDGE0_API_KEY, conf.JUDGE0_URL)
+	submissionService := services.NewSubmissionService(
+		submissionRepo,
+		contestSubmissionsRepo,
+		contestRepo,
+		conf.JUDGE0_API_KEY,
+		conf.JUDGE0_URL,
+	)
 
 	return router.Handlers{
 		Auth:            handlers.NewAuthHandler(authService),
