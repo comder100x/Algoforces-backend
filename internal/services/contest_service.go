@@ -214,9 +214,7 @@ func (s *contestService) GetAllContests(ctx context.Context) ([]domain.CreateCon
 	return contestResponses, nil
 }
 
-// CheckSubmissionGate loads the contest, registration and problem list,
-// then applies the gate checks in order: exists, visible, live, registered
-// or privileged, problem in contest.
+// Gate checks in order: exists, visible, live, registered or privileged, problem in contest.
 func (s *contestService) CheckSubmissionGate(ctx context.Context, userID, contestID, problemID string) error {
 	if s.contestRegisterRepo == nil || s.contestProblemsRepo == nil {
 		return errors.New("contest gate repositories are not configured")
@@ -253,8 +251,7 @@ func (s *contestService) CheckSubmissionGate(ctx context.Context, userID, contes
 	return evaluateSubmissionGate(contest, registration, problemInContest, userID, time.Now())
 }
 
-// evaluateSubmissionGate applies the gate checks in order. Creators and
-// problem setters bypass only the registration check.
+// Creators and problem setters bypass only the registration check.
 func evaluateSubmissionGate(contest *domain.Contest, registration *domain.ContestRegistration, problemInContest bool, userID string, now time.Time) error {
 	if contest == nil {
 		return domain.ErrContestNotFound

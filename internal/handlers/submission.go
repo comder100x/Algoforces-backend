@@ -56,12 +56,8 @@ func (h *SubmissionHandler) CreateSubmission(ctx *gin.Context) {
 	createSubmissionResponse, err := h.submissionUseCase.CreateNewSubmission(ctx.Request.Context(), &createSubmissionRequest)
 	if err != nil {
 		log.Error().Err(err).Str("problem_id", createSubmissionRequest.ProblemID).Str("language", createSubmissionRequest.Language).Msg("Failed to create submission")
-		// Contest-gate rejections carry the sentinel errors from
-		// domain/submission.go; map them to client errors, keeping
-		// everything else a 500. Problem-not-in-contest is a 409
-		// (the request conflicts with the contest's problem set),
-		// not a 403: the user may be registered and the contest
-		// live, but this problem does not belong to this contest.
+		// Gate rejections map to client errors, everything else is a 500.
+		// Problem-not-in-contest is a 409, not a 403.
 		switch {
 		case errors.Is(err, domain.ErrContestNotFound):
 			utils.SendError(ctx, http.StatusNotFound, err, "Contest not found")

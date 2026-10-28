@@ -39,10 +39,7 @@ func (s *contestRegisterService) RegisterContest(ctx context.Context, userID str
 		return nil, errors.New("contest not found")
 	}
 
-	// Registration is only open for visible contests that have not
-	// ended yet. This sits alongside the existing 5-minute-before-
-	// start rule below, which also closes registration once the
-	// contest has started.
+	// Registration needs a visible contest that has not ended.
 	if !contest.Visible {
 		return nil, errors.New("contest is not visible")
 	}
