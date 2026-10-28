@@ -5,25 +5,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type contestProblemsService struct {
 	contestProblemsRepo domain.ContestProblemsRepository
 	contestRepo         domain.ContestRepository
 	problemRepo         domain.ProblemRepository
+	contestRegisterRepo domain.ContestRegisterRepository
 }
 
 func NewContestProblemsService(
 	contestProblemsRepo domain.ContestProblemsRepository,
 	contestRepo domain.ContestRepository,
 	problemRepo domain.ProblemRepository,
+	contestRegisterRepo domain.ContestRegisterRepository,
 ) domain.ContestProblemsUseCase {
 	return &contestProblemsService{
 		contestProblemsRepo: contestProblemsRepo,
 		contestRepo:         contestRepo,
 		problemRepo:         problemRepo,
+		contestRegisterRepo: contestRegisterRepo,
 	}
 }
 
@@ -155,6 +160,45 @@ func (s *contestProblemsService) GetContestProblems(ctx context.Context, req *do
 	}
 
 	return response, nil
+}
+
+func (s *contestProblemsService) GetContestProblemsForParticipant(ctx context.Context, contestID, userID, role string) (*domain.GetContestProblemsResponse, error) {
+	// Validate contest exists.
+	contest, err := s.contestRepo.GetByID(ctx, contestID)
+	if err != nil {
+		return nil, errors.New("contest not found")
+	}
+
+	// Look up this user's registration for the contest. A missing row is not
+	// an error here: it just means the caller is unregistered, which the
+	// access decision below treats as "no access" for non-privileged users.
+	// Any other repository error is a real failure and is returned as-is.
+	registration, err := s.contestRegisterRepo.GetRegistrationByUserAndContest(ctx, userID, contestID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			registration = nil
+		} else {
+			return nil, err
+		}
+	}
+
+	// Single access decision point; the live window is evaluated inside the
+	// helper directly from the Contest fields (StartTime, EndTime, IsActive).
+	if !CanViewContestProblemsForParticipant(contest, userID, role, registration, time.Now()) {
+		return nil, domain.ErrContestProblemsForbidden
+	}
+
+	// Ordered by OrderPosition ascending by the repository, with the Problem
+	// (including its statement) attached. ContestProblemDetail / Problem
+	// carry no test-case fields, so no test-case input/output can leak here.
+	problems, err := s.contestProblemsRepo.GetContestProblemsByContestIDWithDetails(ctx, contestID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.GetContestProblemsResponse{
+		Problems: problems,
+	}, nil
 }
 
 func (s *contestProblemsService) UpdateContestProblem(ctx context.Context, req *domain.UpdateContestProblemRequest) (*domain.UpdateContestProblemResponse, error) {

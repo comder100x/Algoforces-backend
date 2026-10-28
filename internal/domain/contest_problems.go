@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -126,12 +127,25 @@ type ContestProblemsRepository interface {
 	GetContestProblemsByContestIDWithDetails(ctx context.Context, contestID string) ([]ContestProblemDetail, error)
 }
 
+// ErrContestProblemsForbidden is returned by
+// GetContestProblemsForParticipant when the caller is not allowed to view
+// the contest's problems (not an admin / problem-setter / contest creator /
+// listed problem-setter, and not a registered participant inside the live
+// window). Handlers map it to HTTP 403.
+var ErrContestProblemsForbidden = errors.New("access denied: contest problems are not visible to you at this time")
+
 // Use Case Interface
 type ContestProblemsUseCase interface {
 	CreateContestProblem(ctx context.Context, req *CreateContestProblemRequest) (*CreateContestProblemResponse, error)
 	BulkCreateContestProblems(ctx context.Context, req *BulkCreateContestProblemRequest) (*BulkCreateContestProblemResponse, error)
 	GetContestProblem(ctx context.Context, req *GetContestProblemRequest) (*GetContestProblemResponse, error)
 	GetContestProblems(ctx context.Context, req *GetContestProblemsRequest) (*GetContestProblemsResponse, error)
+	// GetContestProblemsForParticipant returns the contest's problems, ordered
+	// by OrderPosition, for a participant-facing view. It reuses
+	// GetContestProblemsResponse: each ContestProblemDetail carries the
+	// Problem (including its statement) and no test-case input/output.
+	// Callers who fail the access gate get ErrContestProblemsForbidden.
+	GetContestProblemsForParticipant(ctx context.Context, contestID, userID, role string) (*GetContestProblemsResponse, error)
 	UpdateContestProblem(ctx context.Context, req *UpdateContestProblemRequest) (*UpdateContestProblemResponse, error)
 	DeleteContestProblem(ctx context.Context, req *DeleteContestProblemRequest) (*DeleteContestProblemResponse, error)
 }
