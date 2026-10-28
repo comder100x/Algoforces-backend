@@ -28,11 +28,8 @@ func NewStandingsService(standingsRepo domain.StandingsRepository, userRepo doma
 	}
 }
 
-// GetStandings returns the leaderboard for a contest. The contest
-// must exist. Before the contest starts, only admins, problem
-// setters and users listed in the contest's ProblemSetters may view
-// the standings; other callers get ErrStandingsForbidden. Once the
-// contest is live or ended, any authenticated caller may view them.
+// GetStandings returns the leaderboard. Before the contest starts, only
+// admins, problem setters and listed setters may view it.
 func (s *StandingsService) GetStandings(ctx context.Context, contestID string, userID string, role string) (*domain.StandingsResponse, error) {
 	contest, err := s.contestRepo.GetByID(ctx, contestID)
 	if err != nil {
@@ -76,10 +73,7 @@ func (s *StandingsService) GetStandings(ctx context.Context, contestID string, u
 	}, nil
 }
 
-// contestStatusAt derives a contest's status directly from its
-// StartTime, EndTime and IsActive fields: ended once the end time
-// has passed, upcoming until the contest is both active and its
-// start time has arrived, and live in between.
+// contestStatusAt derives status from StartTime, EndTime and IsActive.
 func contestStatusAt(contest *domain.Contest, now time.Time) string {
 	if now.After(contest.EndTime) {
 		return domain.ContestStatusEnded
@@ -151,25 +145,8 @@ type rankedStandingsEntry struct {
 	totalAttempts int
 }
 
-// BuildStandingsEntries ranks users from their submissions and
-// attempt counts. It is pure: it performs no I/O, so it is testable
-// without a database.
-//
-// Per user and problem, the best score is the maximum Score among
-// Accepted submissions only; non-Accepted submissions never affect
-// the best score or the first-accepted time, but they do count as
-// attempts through counts. The first-accepted time is the earliest
-// Accepted SubmittedAt for that problem. A problem a user never
-// attempted does not appear in their ProblemScores and contributes
-// nothing. Users appear only if they have an Accepted submission or
-// an entry in counts, so a user whose only submissions were rejected
-// still appears (via counts) with a zero best score.
-//
-// Entries are sorted by total score descending, then by
-// last-accepted time ascending (the latest first-accepted time
-// among the user's solved problems; users with no solved problem
-// sort last), then by total attempts ascending, then by username
-// ascending, with user ID as a final deterministic tie-break.
+// BuildStandingsEntries ranks users from submissions and attempt counts.
+// It is pure; entries sort by total score desc, last-accepted asc, attempts asc, then username.
 func BuildStandingsEntries(submissions []domain.Submission, usernames map[string]string, counts map[domain.SubmissionCountKey]int) []domain.StandingsEntry {
 	users := make(map[string]*standingsUserAggregate)
 

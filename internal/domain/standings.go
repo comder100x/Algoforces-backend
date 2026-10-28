@@ -58,10 +58,8 @@ type SubmissionCountKey struct {
 	ProblemID string
 }
 
-// StandingsRepository reads the submission data a contest's
-// standings are computed from. It is deliberately separate from
-// SubmissionRepository so adding standings does not change that
-// interface or break its existing fakes.
+// StandingsRepository reads the submission data standings are computed
+// from. It is separate from SubmissionRepository so its fakes keep compiling.
 type StandingsRepository interface {
 	// GetAcceptedSubmissionsForContest returns every submission in
 	// the contest whose verdict is Accepted.

@@ -7,10 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// NewStandingsRepository returns a StandingsRepository backed by the
-// same submissionRepository struct as the submission repository, so
-// no new table or migration is involved. The existing
-// NewSubmissionRepository constructor is left untouched.
+// NewStandingsRepository returns a StandingsRepository backed by the same
+// submissionRepository struct; no new table or migration is involved.
 func NewStandingsRepository(db *gorm.DB) domain.StandingsRepository {
 	return &submissionRepository{
 		db: db,
