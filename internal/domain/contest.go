@@ -2,10 +2,14 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/lib/pq"
 )
+
+// ErrContestNotFound is returned when a contest does not exist.
+var ErrContestNotFound = errors.New("contest not found")
 
 type Contest struct {
 	Id             string         `json:"id" gorm:"primaryKey";type:uuid"`

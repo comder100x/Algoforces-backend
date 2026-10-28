@@ -570,6 +570,47 @@ definitions:
     - password
     - username
     type: object
+  domain.StandingsEntry:
+    properties:
+      last_accepted_at:
+        type: string
+      problem_scores:
+        items:
+          $ref: '#/definitions/domain.StandingsProblemScore'
+        type: array
+      solved_count:
+        type: integer
+      total_score:
+        type: integer
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+  domain.StandingsProblemScore:
+    properties:
+      attempts:
+        type: integer
+      best_score:
+        type: integer
+      first_accepted_at:
+        type: string
+      problem_id:
+        type: string
+    type: object
+  domain.StandingsResponse:
+    properties:
+      contest_id:
+        type: string
+      entries:
+        items:
+          $ref: '#/definitions/domain.StandingsEntry'
+        type: array
+      generated_at:
+        type: string
+      status:
+        type: string
+    type: object
   domain.TestCase:
     properties:
       input:
@@ -1265,6 +1306,54 @@ paths:
       summary: Get Contest Details
       tags:
       - Contest
+  /api/contest/{id}/standings:
+    get:
+      description: Get the leaderboard for a contest. Before the contest starts, only
+        admins and problem setters may view it; once live or ended, any authenticated
+        user may.
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.StandingsResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get contest standings
+      tags:
+      - Standings
   /api/contest/create:
     post:
       consumes:

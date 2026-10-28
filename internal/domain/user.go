@@ -53,6 +53,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetByID(ctx context.Context, id string) (*User, error)
+	GetUsernamesByIDs(ctx context.Context, ids []string) (map[string]string, error)
 	UpdateByID(ctx context.Context, id string, user *User) error
 }
 

@@ -15,10 +15,6 @@ const (
 	ContestStatusEnded    = "ended"
 )
 
-// ErrContestNotFound is returned when the standings are requested for
-// a contest that does not exist.
-var ErrContestNotFound = errors.New("contest not found")
-
 // ErrStandingsForbidden is returned when a participant requests the
 // standings before the contest has started. Admins and problem
 // setters may still view them.
@@ -73,4 +69,9 @@ type StandingsRepository interface {
 // StandingsUseCase computes contest standings.
 type StandingsUseCase interface {
 	GetStandings(ctx context.Context, contestID string, userID string, role string) (*StandingsResponse, error)
+}
+
+// UsernameRepository loads usernames for a batch of user IDs in one query.
+type UsernameRepository interface {
+	GetUsernamesByIDs(ctx context.Context, ids []string) (map[string]string, error)
 }

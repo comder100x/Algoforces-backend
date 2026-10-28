@@ -12,6 +12,8 @@ type userRepository struct {
 	db *gorm.DB
 }
 
+var _ domain.UsernameRepository = (*userRepository)(nil)
+
 // NewUserRepository creates a new user repository
 func NewUserRepository(db *gorm.DB) domain.UserRepository {
 	return &userRepository{db: db}
@@ -47,4 +49,35 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*domain.User, 
 
 func (r *userRepository) UpdateByID(ctx context.Context, id string, user *domain.User) error {
 	return r.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", id).Updates(user).Error
+}
+
+// GetUsernamesByIDs returns the username for each found user ID in one query.
+func (r *userRepository) GetUsernamesByIDs(ctx context.Context, ids []string) (map[string]string, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("user repository is not initialised")
+	}
+	if len(ids) == 0 {
+		return map[string]string{}, nil
+	}
+
+	type usernameRow struct {
+		ID       string `gorm:"column:id"`
+		Username string `gorm:"column:username"`
+	}
+
+	var rows []usernameRow
+	err := r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Select("id, username").
+		Where("id IN ?", ids).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	usernames := make(map[string]string, len(rows))
+	for _, row := range rows {
+		usernames[row.ID] = row.Username
+	}
+	return usernames, nil
 }

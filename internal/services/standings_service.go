@@ -5,38 +5,41 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
+	"strings"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
-// StandingsService computes contest standings from submission data.
-type StandingsService struct {
+type standingsService struct {
 	standingsRepo domain.StandingsRepository
-	userRepo      domain.UserRepository
+	usernameRepo  domain.UsernameRepository
 	contestRepo   domain.ContestRepository
 }
 
-// NewStandingsService creates a StandingsService.
-func NewStandingsService(standingsRepo domain.StandingsRepository, userRepo domain.UserRepository, contestRepo domain.ContestRepository) domain.StandingsUseCase {
-	return &StandingsService{
+// NewStandingsService creates a standings use case.
+func NewStandingsService(standingsRepo domain.StandingsRepository, usernameRepo domain.UsernameRepository, contestRepo domain.ContestRepository) domain.StandingsUseCase {
+	return &standingsService{
 		standingsRepo: standingsRepo,
-		userRepo:      userRepo,
+		usernameRepo:  usernameRepo,
 		contestRepo:   contestRepo,
 	}
 }
 
 // GetStandings returns the leaderboard. Before the contest starts, only
 // admins, problem setters and listed setters may view it.
-func (s *StandingsService) GetStandings(ctx context.Context, contestID string, userID string, role string) (*domain.StandingsResponse, error) {
+func (s *standingsService) GetStandings(ctx context.Context, contestID string, userID string, role string) (*domain.StandingsResponse, error) {
+	if s == nil || s.standingsRepo == nil || s.usernameRepo == nil || s.contestRepo == nil {
+		return nil, errors.New("standings service is not initialised")
+	}
+
 	contest, err := s.contestRepo.GetByID(ctx, contestID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrContestNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("get contest %s: %w", contestID, err)
 	}
 	if contest == nil {
 		return nil, domain.ErrContestNotFound
@@ -44,18 +47,17 @@ func (s *StandingsService) GetStandings(ctx context.Context, contestID string, u
 
 	status := contestStatusAt(contest, time.Now())
 	if status == domain.ContestStatusUpcoming && !canViewUpcomingStandings(contest, userID, role) {
-		log.Warn().Str("contest_id", contestID).Str("user_id", userID).Str("role", role).Msg("Standings requested before contest start by participant")
 		return nil, domain.ErrStandingsForbidden
 	}
 
 	accepted, err := s.standingsRepo.GetAcceptedSubmissionsForContest(ctx, contestID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get accepted submissions for contest %s: %w", contestID, err)
 	}
 
 	counts, err := s.standingsRepo.GetSubmissionCountsForContest(ctx, contestID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get submission counts for contest %s: %w", contestID, err)
 	}
 
 	usernames, err := s.usernamesForStandings(ctx, accepted, counts)
@@ -99,10 +101,9 @@ func canViewUpcomingStandings(contest *domain.Contest, userID string, role strin
 	return false
 }
 
-// usernamesForStandings resolves the username of every user who has
-// at least one submission in the contest, from the accepted
-// submissions and the attempt counts together.
-func (s *StandingsService) usernamesForStandings(ctx context.Context, submissions []domain.Submission, counts map[domain.SubmissionCountKey]int) (map[string]string, error) {
+// usernamesForStandings resolves usernames in one batch query. Users
+// missing from the result fall back to their user ID.
+func (s *standingsService) usernamesForStandings(ctx context.Context, submissions []domain.Submission, counts map[domain.SubmissionCountKey]int) (map[string]string, error) {
 	userIDs := make(map[string]struct{})
 	for _, submission := range submissions {
 		userIDs[submission.UserId] = struct{}{}
@@ -110,20 +111,31 @@ func (s *StandingsService) usernamesForStandings(ctx context.Context, submission
 	for key := range counts {
 		userIDs[key.UserID] = struct{}{}
 	}
+	if len(userIDs) == 0 {
+		return map[string]string{}, nil
+	}
 
 	ordered := make([]string, 0, len(userIDs))
 	for userID := range userIDs {
 		ordered = append(ordered, userID)
 	}
-	sort.Strings(ordered)
+	slices.Sort(ordered)
+
+	loaded, err := s.usernameRepo.GetUsernamesByIDs(ctx, ordered)
+	if err != nil {
+		return nil, fmt.Errorf("get usernames for standings: %w", err)
+	}
+	if loaded == nil {
+		loaded = map[string]string{}
+	}
 
 	usernames := make(map[string]string, len(ordered))
 	for _, userID := range ordered {
-		user, err := s.userRepo.GetByID(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get user %s: %w", userID, err)
+		username, ok := loaded[userID]
+		if !ok || username == "" {
+			username = userID
 		}
-		usernames[userID] = user.Username
+		usernames[userID] = username
 	}
 	return usernames, nil
 }
@@ -219,8 +231,8 @@ func BuildStandingsEntries(submissions []domain.Submission, usernames map[string
 				Attempts:        attempts,
 			})
 		}
-		sort.Slice(problemScores, func(i, j int) bool {
-			return problemScores[i].ProblemID < problemScores[j].ProblemID
+		slices.SortFunc(problemScores, func(a, b domain.StandingsProblemScore) int {
+			return strings.Compare(a.ProblemID, b.ProblemID)
 		})
 
 		username := usernames[userID]
@@ -240,29 +252,53 @@ func BuildStandingsEntries(submissions []domain.Submission, usernames map[string
 		})
 	}
 
-	sort.Slice(ranked, func(i, j int) bool {
-		a, b := ranked[i], ranked[j]
-		if a.entry.TotalScore != b.entry.TotalScore {
-			return a.entry.TotalScore > b.entry.TotalScore
-		}
-		if (a.entry.LastAcceptedAt == nil) != (b.entry.LastAcceptedAt == nil) {
-			return a.entry.LastAcceptedAt != nil
-		}
-		if a.entry.LastAcceptedAt != nil && b.entry.LastAcceptedAt != nil && !a.entry.LastAcceptedAt.Equal(*b.entry.LastAcceptedAt) {
-			return a.entry.LastAcceptedAt.Before(*b.entry.LastAcceptedAt)
-		}
-		if a.totalAttempts != b.totalAttempts {
-			return a.totalAttempts < b.totalAttempts
-		}
-		if a.entry.Username != b.entry.Username {
-			return a.entry.Username < b.entry.Username
-		}
-		return a.entry.UserID < b.entry.UserID
-	})
+	slices.SortFunc(ranked, compareRankedStandingsEntries)
 
 	entries := make([]domain.StandingsEntry, 0, len(ranked))
 	for _, item := range ranked {
 		entries = append(entries, item.entry)
 	}
 	return entries
+}
+
+func compareRankedStandingsEntries(a, b rankedStandingsEntry) int {
+	scoreDiffers := a.entry.TotalScore != b.entry.TotalScore
+	if scoreDiffers {
+		if a.entry.TotalScore > b.entry.TotalScore {
+			return -1
+		}
+		return 1
+	}
+
+	aHasLastAccepted := a.entry.LastAcceptedAt != nil
+	bHasLastAccepted := b.entry.LastAcceptedAt != nil
+	lastAcceptedPresenceDiffers := aHasLastAccepted != bHasLastAccepted
+	if lastAcceptedPresenceDiffers {
+		if aHasLastAccepted {
+			return -1
+		}
+		return 1
+	}
+
+	lastAcceptedDiffers := aHasLastAccepted && bHasLastAccepted && !a.entry.LastAcceptedAt.Equal(*b.entry.LastAcceptedAt)
+	if lastAcceptedDiffers {
+		if a.entry.LastAcceptedAt.Before(*b.entry.LastAcceptedAt) {
+			return -1
+		}
+		return 1
+	}
+
+	attemptsDiffer := a.totalAttempts != b.totalAttempts
+	if attemptsDiffer {
+		if a.totalAttempts < b.totalAttempts {
+			return -1
+		}
+		return 1
+	}
+
+	usernameDiffers := a.entry.Username != b.entry.Username
+	if usernameDiffers {
+		return strings.Compare(a.entry.Username, b.entry.Username)
+	}
+	return strings.Compare(a.entry.UserID, b.entry.UserID)
 }

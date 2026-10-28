@@ -37,6 +37,11 @@ func NewStandingsHandler(standingsUseCase domain.StandingsUseCase) *StandingsHan
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/api/contest/{id}/standings [get]
 func (h *StandingsHandler) GetStandings(ctx *gin.Context) {
+	if h == nil || h.standingsUseCase == nil {
+		utils.SendError(ctx, http.StatusInternalServerError, errors.New("internal server error"), "Failed to get contest standings")
+		return
+	}
+
 	contestID := ctx.Param("id")
 	if contestID == "" {
 		utils.SendError(ctx, http.StatusBadRequest, errors.New("contest ID is required"), "Contest ID is required")
@@ -63,7 +68,7 @@ func (h *StandingsHandler) GetStandings(ctx *gin.Context) {
 			utils.SendError(ctx, http.StatusForbidden, err, "Standings are not available before the contest starts")
 		default:
 			log.Error().Err(err).Str("contest_id", contestID).Str("user_id", userID).Msg("Failed to get contest standings")
-			utils.SendError(ctx, http.StatusInternalServerError, err, "Failed to get contest standings")
+			utils.SendError(ctx, http.StatusInternalServerError, errors.New("internal server error"), "Failed to get contest standings")
 		}
 		return
 	}
