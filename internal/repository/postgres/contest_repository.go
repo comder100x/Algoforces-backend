@@ -41,10 +41,17 @@ func (r *contestRepository) DeleteContest(ctx context.Context, id string) error 
 }
 
 func (r *contestRepository) CheckContestInTimeWindow(ctx context.Context, startTime, endTime time.Time) ([]domain.Contest, error) {
+	return r.CheckContestInTimeWindowExcluding(ctx, startTime, endTime, "")
+}
+
+func (r *contestRepository) CheckContestInTimeWindowExcluding(ctx context.Context, startTime, endTime time.Time, excludeID string) ([]domain.Contest, error) {
 	var contests []domain.Contest
-	err := r.db.WithContext(ctx).
-		Where("start_time < ? AND end_time > ?", endTime, startTime).
-		Find(&contests).Error
+	query := r.db.WithContext(ctx).
+		Where("start_time < ? AND end_time > ?", endTime, startTime)
+	if excludeID != "" {
+		query = query.Where("id <> ?", excludeID)
+	}
+	err := query.Find(&contests).Error
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +61,18 @@ func (r *contestRepository) CheckContestInTimeWindow(ctx context.Context, startT
 func (r *contestRepository) GetAllContests(ctx context.Context) ([]domain.Contest, error) {
 	var contests []domain.Contest
 	err := r.db.WithContext(ctx).Order("created_at DESC").Find(&contests).Error
+	if err != nil {
+		return nil, err
+	}
+	return contests, nil
+}
+
+func (r *contestRepository) GetVisibleContests(ctx context.Context) ([]domain.Contest, error) {
+	var contests []domain.Contest
+	err := r.db.WithContext(ctx).
+		Where("visible = ?", true).
+		Order("start_time ASC").
+		Find(&contests).Error
 	if err != nil {
 		return nil, err
 	}

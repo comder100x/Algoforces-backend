@@ -4,6 +4,7 @@ import (
 	"algoforces/internal/domain"
 	"algoforces/internal/middleware"
 	"algoforces/internal/utils"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -147,6 +148,76 @@ func (h *ContestHandler) DeleteContest(c *gin.Context) {
 	utils.SendSuccess(c, http.StatusOK, nil, "Contest deleted successfully")
 }
 
+// StartContest godoc
+//
+//	@Summary		Start a Contest
+//	@Description	Start a contest (admin or problem-setter only). The contest must not have ended and must have at least one problem.
+//	@Tags			Contest
+//	@Produce		json
+//	@Param			id	path	string	true	"Contest ID"
+//	@Security		BearerAuth
+//	@Success		200	{object}	utils.SuccessResponse
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/contest/{id}/start [post]
+func (h *ContestHandler) StartContest(c *gin.Context) {
+	contestId := c.Param("id")
+	if contestId == "" {
+		utils.SendError(c, http.StatusBadRequest, errors.New("contest ID is required"), "Contest ID is required")
+		return
+	}
+	userId, err := middleware.GetUserID(c)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user ID from context")
+		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get user ID")
+		return
+	}
+
+	if err := h.contestUseCase.StartContest(c.Request.Context(), contestId); err != nil {
+		log.Error().Err(err).Str("user_id", userId).Str("contest_id", contestId).Msg("Failed to start contest")
+		utils.SendError(c, http.StatusInternalServerError, err, "Failed to start contest")
+		return
+	}
+
+	log.Info().Str("user_id", userId).Str("contest_id", contestId).Msg("Contest started successfully")
+	utils.SendSuccess(c, http.StatusOK, nil, "Contest started successfully")
+}
+
+// EndContest godoc
+//
+//	@Summary		End a Contest
+//	@Description	End a contest (admin or problem-setter only). Sets the contest inactive; its end time is left unchanged.
+//	@Tags			Contest
+//	@Produce		json
+//	@Param			id	path	string	true	"Contest ID"
+//	@Security		BearerAuth
+//	@Success		200	{object}	utils.SuccessResponse
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/contest/{id}/end [post]
+func (h *ContestHandler) EndContest(c *gin.Context) {
+	contestId := c.Param("id")
+	if contestId == "" {
+		utils.SendError(c, http.StatusBadRequest, errors.New("contest ID is required"), "Contest ID is required")
+		return
+	}
+	userId, err := middleware.GetUserID(c)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user ID from context")
+		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get user ID")
+		return
+	}
+
+	if err := h.contestUseCase.EndContest(c.Request.Context(), contestId); err != nil {
+		log.Error().Err(err).Str("user_id", userId).Str("contest_id", contestId).Msg("Failed to end contest")
+		utils.SendError(c, http.StatusInternalServerError, err, "Failed to end contest")
+		return
+	}
+
+	log.Info().Str("user_id", userId).Str("contest_id", contestId).Msg("Contest ended successfully")
+	utils.SendSuccess(c, http.StatusOK, nil, "Contest ended successfully")
+}
+
 // GetAllContests godoc
 //
 //	@Summary		Get All Contests (Admin)
@@ -159,6 +230,26 @@ func (h *ContestHandler) DeleteContest(c *gin.Context) {
 //	@Router			/api/admin/contests [get]
 func (h *ContestHandler) GetAllContests(c *gin.Context) {
 	contests, err := h.contestUseCase.GetAllContests(c.Request.Context())
+	if err != nil {
+		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get contests")
+		return
+	}
+
+	utils.SendSuccess(c, http.StatusOK, contests, "Contests retrieved successfully")
+}
+
+// GetVisibleContests godoc
+//
+//	@Summary		Get Visible Contests
+//	@Description	Get all visible contests, ordered by start time (any authenticated user)
+//	@Tags			Contest
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{array}		domain.CreateContestResponse
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/api/contest/all [get]
+func (h *ContestHandler) GetVisibleContests(c *gin.Context) {
+	contests, err := h.contestUseCase.GetVisibleContests(c.Request.Context())
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, err, "Failed to get contests")
 		return

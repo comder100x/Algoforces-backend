@@ -78,7 +78,10 @@ func registerContestRoutes(r *gin.Engine, h Handlers) {
 	contest.Use(middleware.AuthMiddleware())
 	{
 		contest.POST("/create", middleware.RoleMiddleware("admin", "problem-setter"), h.Contest.CreateContest)
+		contest.GET("/all", h.Contest.GetVisibleContests)
 		contest.GET("/:id", h.Contest.GetContestDetails)
+		contest.POST("/:id/start", middleware.RoleMiddleware("admin", "problem-setter"), h.Contest.StartContest)
+		contest.POST("/:id/end", middleware.RoleMiddleware("admin", "problem-setter"), h.Contest.EndContest)
 		contest.PUT("/update", middleware.RoleMiddleware("admin", "problem-setter"), h.Contest.UpdateContest)
 		contest.DELETE("/:id", middleware.RoleMiddleware("admin"), h.Contest.DeleteContest)
 	}
