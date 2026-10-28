@@ -2,9 +2,30 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/lib/pq"
+)
+
+// Sentinel errors for the contest submission gate (see
+// services/submission_gate.go). Handlers match these with errors.Is;
+// the service must return them unwrapped (or wrapped with %w) so the
+// match keeps working.
+var (
+	// ErrContestNotFound is returned when the submission's contest does not exist.
+	ErrContestNotFound = errors.New("contest not found")
+	// ErrContestNotVisible is returned when the contest is not visible.
+	ErrContestNotVisible = errors.New("contest is not visible")
+	// ErrContestNotLive is returned when the contest is not in its live
+	// window (before StartTime, after EndTime, or not IsActive).
+	ErrContestNotLive = errors.New("contest is not live")
+	// ErrNotRegistered is returned when the user has no registration
+	// with Status == "registered" for the contest.
+	ErrNotRegistered = errors.New("user is not registered for this contest")
+	// ErrProblemNotInContest is returned when the problem is not part
+	// of the contest's problem set.
+	ErrProblemNotInContest = errors.New("problem is not part of this contest")
 )
 
 const (
